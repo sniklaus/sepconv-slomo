@@ -6,7 +6,7 @@ This is a reference implementation of Video Frame Interpolation via Adaptive Sep
 For the Torch version of this work, please see: https://github.com/sniklaus/torch-sepconv
 
 ## setup
-To build the implementation and download the pretrained networks, run `bash install.bash` and make sure that you configured the `CUDA_HOME` environment variable. After successfully completeing this step, run `python run.py` to test it. Should you receive an error message regarding an invalid device function during execution, configure the utilized CUDA architecture within `install.bash` to something your graphics card supports.
+To build the implementation and download the pre-trained networks, run `bash install.bash` and make sure that you configured the `CUDA_HOME` environment variable. After successfully completing this step, run `python run.py` to test it. Should you receive an error message regarding an invalid device function during execution, configure the utilized CUDA architecture within `install.bash` to something your graphics card supports.
 
 ## usage
 To run it on your own pair of frames, use the following command. You can either select the `l1` or the `lf` model, please see our paper for more details.
@@ -19,7 +19,7 @@ python run.py --model lf --first ./images/first.png --second ./images/second.png
 <a href="http://web.cecs.pdx.edu/~fliu/project/sepconv/demo.mp4" rel="Video"><img src="http://web.cecs.pdx.edu/~fliu/project/sepconv/screen.jpg" alt="Video" width="100%"></a>
 
 ## license
-The provided implementation is strictly for academic purposes only. Should you be interested in using our intelectual property, please feel free to contact us.
+The provided implementation is strictly for academic purposes only. Should you be interested in using our intellectual property, please feel free to contact us.
 
 ## references
 ```
@@ -41,4 +41,4 @@ The provided implementation is strictly for academic purposes only. Should you b
 ```
 
 ## acknowledgment
-This work was supported by NSF IIS-1321119. This video uses materials under a Creative Common license or with the owner's permission, as detailed at the end.
+This work was supported by NSF IIS-1321119. The video above uses materials under a Creative Common license or with the owner's permission, as detailed at the end.
