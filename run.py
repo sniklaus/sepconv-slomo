@@ -30,7 +30,7 @@ for strOption, strArgument in getopt.getopt(sys.argv[1:], '', [ strParameter[2:]
 		arguments_strFirst = strArgument # path to the first frame
 
 	elif strOption == '--second':
-		arguments_strSecond = strArgument # path to the first frame
+		arguments_strSecond = strArgument # path to the second frame
 
 	elif strOption == '--out':
 		arguments_strOut = strArgument # path to where the output should be stored
