@@ -35,7 +35,7 @@ class SeparableConvolution(torch.autograd.Function):
 			)
 
 		elif input1.is_cuda == False:
-			assert(False) # NOT IMPLEMENTED
+			raise NotImplementedError()
 
 		# end
 
@@ -43,6 +43,6 @@ class SeparableConvolution(torch.autograd.Function):
 	# end
 
 	def backward(self, gradOutput):
-		assert(false) # NOT IMPLEMENTED
+		raise NotImplementedError()
 	# end
 # end
