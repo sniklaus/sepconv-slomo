@@ -181,8 +181,7 @@ intPaddingLeft = int(math.floor(51 / 2.0))
 intPaddingTop = int(math.floor(51 / 2.0))
 intPaddingRight = int(math.floor(51 / 2.0))
 intPaddingBottom = int(math.floor(51 / 2.0))
-modulePaddingFirst = torch.nn.Module()
-modulePaddingSecond = torch.nn.Module()
+modulePaddingInput = torch.nn.Module()
 modulePaddingOutput = torch.nn.Module()
 
 if True:
@@ -200,24 +199,22 @@ if True:
 	intPaddingWidth = intPaddingWidth - (intPaddingLeft + intWidth + intPaddingRight)
 	intPaddingHeight = intPaddingHeight - (intPaddingTop + intHeight + intPaddingBottom)
 
-	modulePaddingFirst = torch.nn.ReplicationPad2d([intPaddingLeft, intPaddingRight + intPaddingWidth, intPaddingTop, intPaddingBottom + intPaddingHeight])
-	modulePaddingSecond = torch.nn.ReplicationPad2d([intPaddingLeft, intPaddingRight + intPaddingWidth, intPaddingTop, intPaddingBottom + intPaddingHeight])
+	modulePaddingInput = torch.nn.ReplicationPad2d([intPaddingLeft, intPaddingRight + intPaddingWidth, intPaddingTop, intPaddingBottom + intPaddingHeight])
 	modulePaddingOutput = torch.nn.ReplicationPad2d([0 - intPaddingLeft, 0 - intPaddingRight - intPaddingWidth, 0 - intPaddingTop, 0 - intPaddingBottom - intPaddingHeight])
-
-	modulePaddingFirst = modulePaddingFirst.cuda()
-	modulePaddingSecond = modulePaddingSecond.cuda()
-	modulePaddingOutput = modulePaddingOutput.cuda()
 # end
 
 if True:
 	tensorInputFirst = tensorInputFirst.cuda()
 	tensorInputSecond = tensorInputSecond.cuda()
 	tensorOutput = tensorOutput.cuda()
+
+	modulePaddingInput = modulePaddingInput.cuda()
+	modulePaddingOutput = modulePaddingOutput.cuda()
 # end
 
 if True:
-	variablePaddingFirst = modulePaddingFirst(torch.autograd.Variable(data=tensorInputFirst.view(1, 3, intHeight, intWidth), volatile=True))
-	variablePaddingSecond = modulePaddingSecond(torch.autograd.Variable(data=tensorInputSecond.view(1, 3, intHeight, intWidth), volatile=True))
+	variablePaddingFirst = modulePaddingInput(torch.autograd.Variable(data=tensorInputFirst.view(1, 3, intHeight, intWidth), volatile=True))
+	variablePaddingSecond = modulePaddingInput(torch.autograd.Variable(data=tensorInputSecond.view(1, 3, intHeight, intWidth), volatile=True))
 	variablePaddingOutput = modulePaddingOutput(moduleNetwork(variablePaddingFirst, variablePaddingSecond))
 
 	tensorOutput.resize_(3, intHeight, intWidth).copy_(variablePaddingOutput.data[0])

@@ -6,16 +6,16 @@
 extern THCState* state;
 
 int SeparableConvolution_cuda_forward(
-	THCudaTensor* input1,
-	THCudaTensor* input2,
-	THCudaTensor* input3,
+	THCudaTensor* input,
+	THCudaTensor* vertical,
+	THCudaTensor* horizontal,
 	THCudaTensor* output
 ) {
 	SeparableConvolution_kernel_forward(
 		state,
-		input1,
-		input2,
-		input3,
+		input,
+		vertical,
+		horizontal,
 		output
 	);
 

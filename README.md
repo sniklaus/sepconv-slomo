@@ -19,7 +19,7 @@ python run.py --model lf --first ./images/first.png --second ./images/second.png
 <a href="http://web.cecs.pdx.edu/~fliu/project/sepconv/demo.mp4" rel="Video"><img src="http://web.cecs.pdx.edu/~fliu/project/sepconv/screen.jpg" alt="Video" width="100%"></a>
 
 ## license
-The provided implementation is strictly for academic purposes only. Should you be interested in using our intellectual property, please feel free to contact us.
+The provided implementation is strictly for academic purposes only. Should you be interested in using our technology for any commercial use, please feel free to contact us.
 
 ## references
 ```

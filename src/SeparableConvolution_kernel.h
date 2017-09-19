@@ -4,9 +4,9 @@
 
 void SeparableConvolution_kernel_forward(
 	THCState* state,
-	THCudaTensor* input1,
-	THCudaTensor* input2,
-	THCudaTensor* input3,
+	THCudaTensor* input,
+	THCudaTensor* vertical,
+	THCudaTensor* horizontal,
 	THCudaTensor* output
 );
 
