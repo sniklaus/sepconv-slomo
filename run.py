@@ -9,6 +9,9 @@ import torch.utils.serialization
 import PIL
 import PIL.Image
 
+from moviepy.video.io.ffmpeg_reader import FFMPEG_VideoReader
+from moviepy.video.io.ffmpeg_writer import FFMPEG_VideoWriter
+
 from SeparableConvolution import SeparableConvolution # the custom SeparableConvolution layer
 
 torch.cuda.device(1) # change this if you have a multiple graphics cards and you want to utilize them
@@ -21,6 +24,8 @@ arguments_strModel = 'lf'
 arguments_strFirst = './images/first.png'
 arguments_strSecond = './images/second.png'
 arguments_strOut = './result.png'
+arguments_strVideo = ''
+arguments_strVideoOut = ''
 
 for strOption, strArgument in getopt.getopt(sys.argv[1:], '', [ strParameter[2:] + '=' for strParameter in sys.argv[1::2] ])[0]:
 	if strOption == '--model':
@@ -35,6 +40,11 @@ for strOption, strArgument in getopt.getopt(sys.argv[1:], '', [ strParameter[2:]
 	elif strOption == '--out':
 		arguments_strOut = strArgument # path to where the output should be stored
 
+	elif strOption == '--video':
+		arguments_strVideo = strArgument # path to the video
+
+	elif strOption == '--video-out':
+		arguments_strVideoOut = strArgument # path to the video
 	# end
 # end
 
@@ -164,66 +174,88 @@ moduleNetwork = Network().cuda()
 
 ##########################################################
 
-tensorInputFirst = torch.FloatTensor(numpy.rollaxis(numpy.asarray(PIL.Image.open(arguments_strFirst))[:,:,::-1], 2, 0).astype(numpy.float32) / 255.0)
-tensorInputSecond = torch.FloatTensor(numpy.rollaxis(numpy.asarray(PIL.Image.open(arguments_strSecond))[:,:,::-1], 2, 0).astype(numpy.float32) / 255.0)
+def process(tensorInputFirst, tensorInputSecond, tensorOutput):
+	assert(tensorInputFirst.size(1) == tensorInputSecond.size(1))
+	assert(tensorInputFirst.size(2) == tensorInputSecond.size(2))
+
+	intWidth = tensorInputFirst.size(2)
+	intHeight = tensorInputFirst.size(1)
+
+	assert(intWidth <= 1280) # while our approach works with larger images, we do not recommend it unless you are aware of the implications
+	assert(intHeight <= 720) # while our approach works with larger images, we do not recommend it unless you are aware of the implications
+
+	intPaddingLeft = int(math.floor(51 / 2.0))
+	intPaddingTop = int(math.floor(51 / 2.0))
+	intPaddingRight = int(math.floor(51 / 2.0))
+	intPaddingBottom = int(math.floor(51 / 2.0))
+	modulePaddingInput = torch.nn.Module()
+	modulePaddingOutput = torch.nn.Module()
+
+	if True:
+		intPaddingWidth = intPaddingLeft + intWidth + intPaddingRight
+		intPaddingHeight = intPaddingTop + intHeight + intPaddingBottom
+
+		if intPaddingWidth != ((intPaddingWidth >> 7) << 7):
+			intPaddingWidth = (((intPaddingWidth >> 7) + 1) << 7) # more than necessary
+		# end
+		
+		if intPaddingHeight != ((intPaddingHeight >> 7) << 7):
+			intPaddingHeight = (((intPaddingHeight >> 7) + 1) << 7) # more than necessary
+		# end
+
+		intPaddingWidth = intPaddingWidth - (intPaddingLeft + intWidth + intPaddingRight)
+		intPaddingHeight = intPaddingHeight - (intPaddingTop + intHeight + intPaddingBottom)
+
+		modulePaddingInput = torch.nn.ReplicationPad2d([intPaddingLeft, intPaddingRight + intPaddingWidth, intPaddingTop, intPaddingBottom + intPaddingHeight])
+		modulePaddingOutput = torch.nn.ReplicationPad2d([0 - intPaddingLeft, 0 - intPaddingRight - intPaddingWidth, 0 - intPaddingTop, 0 - intPaddingBottom - intPaddingHeight])
+	# end
+
+	if True:
+		tensorInputFirst = tensorInputFirst.cuda()
+		tensorInputSecond = tensorInputSecond.cuda()
+
+		modulePaddingInput = modulePaddingInput.cuda()
+		modulePaddingOutput = modulePaddingOutput.cuda()
+	# end
+
+	if True:
+		variablePaddingFirst = modulePaddingInput(torch.autograd.Variable(data=tensorInputFirst.view(1, 3, intHeight, intWidth), volatile=True))
+		variablePaddingSecond = modulePaddingInput(torch.autograd.Variable(data=tensorInputSecond.view(1, 3, intHeight, intWidth), volatile=True))
+		variablePaddingOutput = modulePaddingOutput(moduleNetwork(variablePaddingFirst, variablePaddingSecond))
+
+		tensorOutput.resize_(3, intHeight, intWidth).copy_(variablePaddingOutput.data[0])
+	# end
+
+	if True:
+		tensorInputFirst.cpu()
+		tensorInputSecond.cpu()
+		tensorOutput.cpu()
+	# end
+#end
+
 tensorOutput = torch.FloatTensor()
 
-assert(tensorInputFirst.size(1) == tensorInputSecond.size(1))
-assert(tensorInputFirst.size(2) == tensorInputSecond.size(2))
-
-intWidth = tensorInputFirst.size(2)
-intHeight = tensorInputFirst.size(1)
-
-assert(intWidth <= 1280) # while our approach works with larger images, we do not recommend it unless you are aware of the implications
-assert(intHeight <= 720) # while our approach works with larger images, we do not recommend it unless you are aware of the implications
-
-intPaddingLeft = int(math.floor(51 / 2.0))
-intPaddingTop = int(math.floor(51 / 2.0))
-intPaddingRight = int(math.floor(51 / 2.0))
-intPaddingBottom = int(math.floor(51 / 2.0))
-modulePaddingInput = torch.nn.Module()
-modulePaddingOutput = torch.nn.Module()
-
-if True:
-	intPaddingWidth = intPaddingLeft + intWidth + intPaddingRight
-	intPaddingHeight = intPaddingTop + intHeight + intPaddingBottom
-
-	if intPaddingWidth != ((intPaddingWidth >> 7) << 7):
-		intPaddingWidth = (((intPaddingWidth >> 7) + 1) << 7) # more than necessary
-	# end
-	
-	if intPaddingHeight != ((intPaddingHeight >> 7) << 7):
-		intPaddingHeight = (((intPaddingHeight >> 7) + 1) << 7) # more than necessary
-	# end
-
-	intPaddingWidth = intPaddingWidth - (intPaddingLeft + intWidth + intPaddingRight)
-	intPaddingHeight = intPaddingHeight - (intPaddingTop + intHeight + intPaddingBottom)
-
-	modulePaddingInput = torch.nn.ReplicationPad2d([intPaddingLeft, intPaddingRight + intPaddingWidth, intPaddingTop, intPaddingBottom + intPaddingHeight])
-	modulePaddingOutput = torch.nn.ReplicationPad2d([0 - intPaddingLeft, 0 - intPaddingRight - intPaddingWidth, 0 - intPaddingTop, 0 - intPaddingBottom - intPaddingHeight])
-# end
-
-if True:
-	tensorInputFirst = tensorInputFirst.cuda()
-	tensorInputSecond = tensorInputSecond.cuda()
-	tensorOutput = tensorOutput.cuda()
-
-	modulePaddingInput = modulePaddingInput.cuda()
-	modulePaddingOutput = modulePaddingOutput.cuda()
-# end
-
-if True:
-	variablePaddingFirst = modulePaddingInput(torch.autograd.Variable(data=tensorInputFirst.view(1, 3, intHeight, intWidth), volatile=True))
-	variablePaddingSecond = modulePaddingInput(torch.autograd.Variable(data=tensorInputSecond.view(1, 3, intHeight, intWidth), volatile=True))
-	variablePaddingOutput = modulePaddingOutput(moduleNetwork(variablePaddingFirst, variablePaddingSecond))
-
-	tensorOutput.resize_(3, intHeight, intWidth).copy_(variablePaddingOutput.data[0])
-# end
-
-if True:
-	tensorInputFirst = tensorInputFirst.cpu()
-	tensorInputSecond = tensorInputSecond.cpu()
-	tensorOutput = tensorOutput.cpu()
-# end
-
-PIL.Image.fromarray((numpy.rollaxis(tensorOutput.clamp(0.0, 1.0).numpy(), 0, 3)[:,:,::-1] * 255.0).astype(numpy.uint8)).save(arguments_strOut)
+if arguments_strVideo and arguments_strVideoOut:
+	# Process video
+	reader = FFMPEG_VideoReader(arguments_strVideo, False)
+	writer = FFMPEG_VideoWriter(arguments_strVideoOut, reader.size, reader.fps*2)
+	reader.initialize()
+	nextFrame = reader.read_frame()
+	for x in range(0, reader.nframes):
+		firstFrame = nextFrame
+		nextFrame = reader.read_frame()
+		tensorInputFirst = torch.FloatTensor(numpy.rollaxis(firstFrame[:,:,::-1], 2, 0) / 255.0)
+		tensorInputSecond = torch.FloatTensor(numpy.rollaxis(nextFrame[:,:,::-1], 2, 0) / 255.0)
+		process(tensorInputFirst, tensorInputSecond, tensorOutput)
+		writer.write_frame(firstFrame)
+		writer.write_frame((numpy.rollaxis(tensorOutput.clamp(0.0, 1.0).numpy(), 0, 3)[:,:,::-1] * 255.0).astype(numpy.uint8))
+	#end
+	writer.write_frame(nextFrame)
+	writer.close()
+else:
+	# Process image
+	tensorInputFirst = torch.FloatTensor(numpy.rollaxis(numpy.asarray(PIL.Image.open(arguments_strFirst))[:,:,::-1], 2, 0).astype(numpy.float32) / 255.0)
+	tensorInputSecond = torch.FloatTensor(numpy.rollaxis(numpy.asarray(PIL.Image.open(arguments_strSecond))[:,:,::-1], 2, 0).astype(numpy.float32) / 255.0)	
+	process(tensorInputFirst, tensorInputSecond, tensorOutput)
+	PIL.Image.fromarray((numpy.rollaxis(tensorOutput.clamp(0.0, 1.0).numpy(), 0, 3)[:,:,::-1] * 255.0).astype(numpy.uint8)).save(arguments_strOut)
+#end
