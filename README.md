@@ -4,6 +4,7 @@ This is a reference implementation of Video Frame Interpolation via Adaptive Sep
 <a href="https://arxiv.org/abs/1708.01692" rel="Paper"><img src="http://content.sniklaus.com/SepConv/Paper.jpg" alt="Paper" width="100%"></a>
 
 For the Torch version of this work, please see: https://github.com/sniklaus/torch-sepconv
+For a third-party fork with video support, consider: https://github.com/dagf2101/pytorch-sepconv
 
 ## setup
 To build the implementation and download the pre-trained networks, run `bash install.bash` and make sure that you configured the `CUDA_HOME` environment variable. After successfully completing this step, run `python run.py` to test it. Should you receive an error message regarding an invalid device function during execution, configure the utilized CUDA architecture within `install.bash` to something your graphics card supports.

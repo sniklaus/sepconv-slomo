@@ -142,13 +142,19 @@ class Network(torch.nn.Module):
 		variableDeconv5 = self.moduleDeconv5(variablePool5)
 		variableUpsample5 = self.moduleUpsample5(variableDeconv5)
 
-		variableDeconv4 = self.moduleDeconv4(variableUpsample5 + variableConv5)
+		variableCombine = variableUpsample5 + variableConv5
+
+		variableDeconv4 = self.moduleDeconv4(variableCombine)
 		variableUpsample4 = self.moduleUpsample4(variableDeconv4)
 
-		variableDeconv3 = self.moduleDeconv3(variableUpsample4 + variableConv4)
+		variableCombine = variableUpsample4 + variableConv4
+
+		variableDeconv3 = self.moduleDeconv3(variableCombine)
 		variableUpsample3 = self.moduleUpsample3(variableDeconv3)
 
-		variableDeconv2 = self.moduleDeconv2(variableUpsample3 + variableConv3)
+		variableCombine = variableUpsample3 + variableConv3
+
+		variableDeconv2 = self.moduleDeconv2(variableCombine)
 		variableUpsample2 = self.moduleUpsample2(variableDeconv2)
 
 		variableCombine = variableUpsample2 + variableConv2
@@ -181,8 +187,8 @@ intPaddingLeft = int(math.floor(51 / 2.0))
 intPaddingTop = int(math.floor(51 / 2.0))
 intPaddingRight = int(math.floor(51 / 2.0))
 intPaddingBottom = int(math.floor(51 / 2.0))
-modulePaddingInput = torch.nn.Module()
-modulePaddingOutput = torch.nn.Module()
+modulePaddingInput = torch.nn.Sequential()
+modulePaddingOutput = torch.nn.Sequential()
 
 if True:
 	intPaddingWidth = intPaddingLeft + intWidth + intPaddingRight
