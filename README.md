@@ -11,8 +11,13 @@ To build the implementation and download the pre-trained networks, run `bash ins
 ## usage
 To run it on your own pair of frames, use the following command. You can either select the `l1` or the `lf` model, please see our paper for more details.
 
+Image:
 ```
 python run.py --model lf --first ./images/first.png --second ./images/second.png --out ./result.png
+```
+Video:
+```
+python run.py --model lf --video ./video.mp4 --video-out ./result.mp4
 ```
 
 ## video
