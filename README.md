@@ -1,5 +1,5 @@
 # pytorch-sepconv
-Please consider our newest work, [Context-aware Synthesis](http://web.cecs.pdx.edu/~fliu/project/ctxsyn) for Video Frame Interpolation.
+**News:** Check our new CVPR 2018 paper on a [faster and higher-quality](http://web.cecs.pdx.edu/~fliu/project/ctxsyn) frame interpolation method.
 
 This is a reference implementation of Video Frame Interpolation via Adaptive Separable Convolution [1] using PyTorch. Given two frames, it will make use of [adaptive convolution](http://graphics.cs.pdx.edu/project/adaconv) [2] in a separable manner to interpolate the intermediate frame. Should you be making use of our work, please cite our paper [1].
 
