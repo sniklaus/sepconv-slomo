@@ -1,15 +1,22 @@
 #!/usr/bin/env python2.7
 
-import sys
 import getopt
 import math
 import numpy
-import torch
-import torch.utils.serialization
+import os
 import PIL
 import PIL.Image
+import sys
+import torch
+import torch.utils.serialization
 
 from SeparableConvolution import SeparableConvolution # the custom SeparableConvolution layer
+
+##########################################################
+
+assert(int(torch.__version__.replace('.', '')) >= 40) # requires at least pytorch version 0.4.0
+
+torch.set_grad_enabled(False) # make sure to not compute gradients for computational performance
 
 torch.cuda.device(1) # change this if you have a multiple graphics cards and you want to utilize them
 
@@ -63,7 +70,7 @@ class Network(torch.nn.Module):
 				torch.nn.ReLU(inplace=False),
 				torch.nn.Conv2d(in_channels=64, out_channels=51, kernel_size=3, stride=1, padding=1),
 				torch.nn.ReLU(inplace=False),
-				torch.nn.Upsample(scale_factor=2, mode='bilinear'),
+				torch.nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True),
 				torch.nn.Conv2d(in_channels=51, out_channels=51, kernel_size=3, stride=1, padding=1)
 			)
 		# end
@@ -85,28 +92,28 @@ class Network(torch.nn.Module):
 
 		self.moduleDeconv5 = Basic(512, 512)
 		self.moduleUpsample5 = torch.nn.Sequential(
-			torch.nn.Upsample(scale_factor=2, mode='bilinear'),
+			torch.nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True),
 			torch.nn.Conv2d(in_channels=512, out_channels=512, kernel_size=3, stride=1, padding=1),
 			torch.nn.ReLU(inplace=False)
 		)
 
 		self.moduleDeconv4 = Basic(512, 256)
 		self.moduleUpsample4 = torch.nn.Sequential(
-			torch.nn.Upsample(scale_factor=2, mode='bilinear'),
+			torch.nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True),
 			torch.nn.Conv2d(in_channels=256, out_channels=256, kernel_size=3, stride=1, padding=1),
 			torch.nn.ReLU(inplace=False)
 		)
 
 		self.moduleDeconv3 = Basic(256, 128)
 		self.moduleUpsample3 = torch.nn.Sequential(
-			torch.nn.Upsample(scale_factor=2, mode='bilinear'),
+			torch.nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True),
 			torch.nn.Conv2d(in_channels=128, out_channels=128, kernel_size=3, stride=1, padding=1),
 			torch.nn.ReLU(inplace=False)
 		)
 
 		self.moduleDeconv2 = Basic(128, 64)
 		self.moduleUpsample2 = torch.nn.Sequential(
-			torch.nn.Upsample(scale_factor=2, mode='bilinear'),
+			torch.nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True),
 			torch.nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, stride=1, padding=1),
 			torch.nn.ReLU(inplace=False)
 		)
@@ -121,48 +128,48 @@ class Network(torch.nn.Module):
 		self.load_state_dict(torch.load('./network-' + arguments_strModel + '.pytorch'))
 	# end
 
-	def forward(self, variableInput1, variableInput2):
-		variableJoin = torch.cat([variableInput1, variableInput2], 1)
+	def forward(self, tensorInput1, tensorInput2):
+		tensorJoin = torch.cat([ tensorInput1, tensorInput2 ], 1)
 
-		variableConv1 = self.moduleConv1(variableJoin)
-		variablePool1 = self.modulePool1(variableConv1)
+		tensorConv1 = self.moduleConv1(tensorJoin)
+		tensorPool1 = self.modulePool1(tensorConv1)
 
-		variableConv2 = self.moduleConv2(variablePool1)
-		variablePool2 = self.modulePool2(variableConv2)
+		tensorConv2 = self.moduleConv2(tensorPool1)
+		tensorPool2 = self.modulePool2(tensorConv2)
 
-		variableConv3 = self.moduleConv3(variablePool2)
-		variablePool3 = self.modulePool3(variableConv3)
+		tensorConv3 = self.moduleConv3(tensorPool2)
+		tensorPool3 = self.modulePool3(tensorConv3)
 
-		variableConv4 = self.moduleConv4(variablePool3)
-		variablePool4 = self.modulePool4(variableConv4)
+		tensorConv4 = self.moduleConv4(tensorPool3)
+		tensorPool4 = self.modulePool4(tensorConv4)
 
-		variableConv5 = self.moduleConv5(variablePool4)
-		variablePool5 = self.modulePool5(variableConv5)
+		tensorConv5 = self.moduleConv5(tensorPool4)
+		tensorPool5 = self.modulePool5(tensorConv5)
 
-		variableDeconv5 = self.moduleDeconv5(variablePool5)
-		variableUpsample5 = self.moduleUpsample5(variableDeconv5)
+		tensorDeconv5 = self.moduleDeconv5(tensorPool5)
+		tensorUpsample5 = self.moduleUpsample5(tensorDeconv5)
 
-		variableCombine = variableUpsample5 + variableConv5
+		tensorCombine = tensorUpsample5 + tensorConv5
 
-		variableDeconv4 = self.moduleDeconv4(variableCombine)
-		variableUpsample4 = self.moduleUpsample4(variableDeconv4)
+		tensorDeconv4 = self.moduleDeconv4(tensorCombine)
+		tensorUpsample4 = self.moduleUpsample4(tensorDeconv4)
 
-		variableCombine = variableUpsample4 + variableConv4
+		tensorCombine = tensorUpsample4 + tensorConv4
 
-		variableDeconv3 = self.moduleDeconv3(variableCombine)
-		variableUpsample3 = self.moduleUpsample3(variableDeconv3)
+		tensorDeconv3 = self.moduleDeconv3(tensorCombine)
+		tensorUpsample3 = self.moduleUpsample3(tensorDeconv3)
 
-		variableCombine = variableUpsample3 + variableConv3
+		tensorCombine = tensorUpsample3 + tensorConv3
 
-		variableDeconv2 = self.moduleDeconv2(variableCombine)
-		variableUpsample2 = self.moduleUpsample2(variableDeconv2)
+		tensorDeconv2 = self.moduleDeconv2(tensorCombine)
+		tensorUpsample2 = self.moduleUpsample2(tensorDeconv2)
 
-		variableCombine = variableUpsample2 + variableConv2
+		tensorCombine = tensorUpsample2 + tensorConv2
 
-		variableDot1 = SeparableConvolution()(self.modulePad(variableInput1), self.moduleVertical1(variableCombine), self.moduleHorizontal1(variableCombine))
-		variableDot2 = SeparableConvolution()(self.modulePad(variableInput2), self.moduleVertical2(variableCombine), self.moduleHorizontal2(variableCombine))
+		tensorDot1 = SeparableConvolution()(self.modulePad(tensorInput1), self.moduleVertical1(tensorCombine), self.moduleHorizontal1(tensorCombine))
+		tensorDot2 = SeparableConvolution()(self.modulePad(tensorInput2), self.moduleVertical2(tensorCombine), self.moduleHorizontal2(tensorCombine))
 
-		return variableDot1 + variableDot2
+		return tensorDot1 + tensorDot2
 	# end
 # end
 
@@ -170,8 +177,8 @@ moduleNetwork = Network().cuda()
 
 ##########################################################
 
-tensorInputFirst = torch.FloatTensor(numpy.rollaxis(numpy.asarray(PIL.Image.open(arguments_strFirst))[:, :, ::-1], 2, 0).astype(numpy.float32) / 255.0)
-tensorInputSecond = torch.FloatTensor(numpy.rollaxis(numpy.asarray(PIL.Image.open(arguments_strSecond))[:, :, ::-1], 2, 0).astype(numpy.float32) / 255.0)
+tensorInputFirst = torch.FloatTensor(numpy.array(PIL.Image.open(arguments_strFirst))[:, :, ::-1].transpose(2, 0, 1).astype(numpy.float32) / 255.0)
+tensorInputSecond = torch.FloatTensor(numpy.array(PIL.Image.open(arguments_strSecond))[:, :, ::-1].transpose(2, 0, 1).astype(numpy.float32) / 255.0)
 tensorOutput = torch.FloatTensor()
 
 assert(tensorInputFirst.size(1) == tensorInputSecond.size(1))
@@ -205,8 +212,8 @@ if True:
 	intPaddingWidth = intPaddingWidth - (intPaddingLeft + intWidth + intPaddingRight)
 	intPaddingHeight = intPaddingHeight - (intPaddingTop + intHeight + intPaddingBottom)
 
-	modulePaddingInput = torch.nn.ReplicationPad2d([intPaddingLeft, intPaddingRight + intPaddingWidth, intPaddingTop, intPaddingBottom + intPaddingHeight])
-	modulePaddingOutput = torch.nn.ReplicationPad2d([0 - intPaddingLeft, 0 - intPaddingRight - intPaddingWidth, 0 - intPaddingTop, 0 - intPaddingBottom - intPaddingHeight])
+	modulePaddingInput = torch.nn.ReplicationPad2d(padding=[ intPaddingLeft, intPaddingRight + intPaddingWidth, intPaddingTop, intPaddingBottom + intPaddingHeight ])
+	modulePaddingOutput = torch.nn.ReplicationPad2d(padding=[ 0 - intPaddingLeft, 0 - intPaddingRight - intPaddingWidth, 0 - intPaddingTop, 0 - intPaddingBottom - intPaddingHeight ])
 # end
 
 if True:
@@ -219,11 +226,10 @@ if True:
 # end
 
 if True:
-	variablePaddingFirst = modulePaddingInput(torch.autograd.Variable(data=tensorInputFirst.view(1, 3, intHeight, intWidth), volatile=True))
-	variablePaddingSecond = modulePaddingInput(torch.autograd.Variable(data=tensorInputSecond.view(1, 3, intHeight, intWidth), volatile=True))
-	variablePaddingOutput = modulePaddingOutput(moduleNetwork(variablePaddingFirst, variablePaddingSecond))
+	tensorPreprocessedFirst = modulePaddingInput(tensorInputFirst.view(1, 3, intHeight, intWidth))
+	tensorPreprocessedSecond = modulePaddingInput(tensorInputSecond.view(1, 3, intHeight, intWidth))
 
-	tensorOutput.resize_(3, intHeight, intWidth).copy_(variablePaddingOutput.data[0])
+	tensorOutput.resize_(3, intHeight, intWidth).copy_(modulePaddingOutput(moduleNetwork(tensorPreprocessedFirst, tensorPreprocessedSecond))[0, :, :, :])
 # end
 
 if True:
@@ -232,4 +238,4 @@ if True:
 	tensorOutput = tensorOutput.cpu()
 # end
 
-PIL.Image.fromarray((numpy.rollaxis(tensorOutput.clamp(0.0, 1.0).numpy(), 0, 3)[:, :, ::-1] * 255.0).astype(numpy.uint8)).save(arguments_strOut)
+PIL.Image.fromarray((tensorOutput.clamp(0.0, 1.0).numpy().transpose(1, 2, 0)[:, :, ::-1] * 255.0).astype(numpy.uint8)).save(arguments_strOut)

@@ -6,5 +6,5 @@ nvcc -c -o src/SeparableConvolution_kernel.o src/SeparableConvolution_kernel.cu 
 
 python install.py
 
-wget --timestamping http://content.sniklaus.com/SepConv/network-l1.pytorch
-wget --timestamping http://content.sniklaus.com/SepConv/network-lf.pytorch
+wget --timestamping http://content.sniklaus.com/sepconv/network-l1.pytorch
+wget --timestamping http://content.sniklaus.com/sepconv/network-lf.pytorch
