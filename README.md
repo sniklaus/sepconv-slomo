@@ -10,7 +10,9 @@ For the Torch version of this work, please see: https://github.com/sniklaus/torc
 For a third-party fork with video support, consider: https://github.com/dagf2101/pytorch-sepconv
 
 ## setup
-To build the implementation and download the pre-trained networks, run `bash install.bash` and make sure that you configured the `CUDA_HOME` environment variable. After successfully completing this step, run `python run.py` to test it. Should you receive an error message regarding an invalid device function during execution, configure the utilized CUDA architecture within `install.bash` to something your graphics card supports.
+To download the pre-trained models, run `bash download.bash`.
+
+The separable convolution layer is implemented in CUDA using CuPy, which is why CuPy is a required dependency. It can be installed using `pip install cupy` or alternatively using one of the provided binary packages as outlined in the CuPy repository.
 
 ## usage
 To run it on your own pair of frames, use the following command. You can either select the `l1` or the `lf` model, please see our paper for more details. In short, the `l1` model should be used for quantitative evaluations and the `lf` model for qualitative comparisons.

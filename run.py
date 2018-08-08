@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python
 
 import getopt
 import math
@@ -10,7 +10,11 @@ import sys
 import torch
 import torch.utils.serialization
 
-from SeparableConvolution import SeparableConvolution # the custom SeparableConvolution layer
+try:
+	from sepconv import sepconv # the custom separable convolution layer
+except:
+	sys.path.insert(0, './sepconv'); import sepconv # you should consider upgrading python
+# end
 
 ##########################################################
 
@@ -166,8 +170,8 @@ class Network(torch.nn.Module):
 
 		tensorCombine = tensorUpsample2 + tensorConv2
 
-		tensorDot1 = SeparableConvolution()(self.modulePad(tensorInput1), self.moduleVertical1(tensorCombine), self.moduleHorizontal1(tensorCombine))
-		tensorDot2 = SeparableConvolution()(self.modulePad(tensorInput2), self.moduleVertical2(tensorCombine), self.moduleHorizontal2(tensorCombine))
+		tensorDot1 = sepconv.FunctionSepconv()(self.modulePad(tensorInput1), self.moduleVertical1(tensorCombine), self.moduleHorizontal1(tensorCombine))
+		tensorDot2 = sepconv.FunctionSepconv()(self.modulePad(tensorInput2), self.moduleVertical2(tensorCombine), self.moduleHorizontal2(tensorCombine))
 
 		return tensorDot1 + tensorDot2
 	# end
@@ -177,65 +181,76 @@ moduleNetwork = Network().cuda()
 
 ##########################################################
 
-tensorInputFirst = torch.FloatTensor(numpy.array(PIL.Image.open(arguments_strFirst))[:, :, ::-1].transpose(2, 0, 1).astype(numpy.float32) / 255.0)
-tensorInputSecond = torch.FloatTensor(numpy.array(PIL.Image.open(arguments_strSecond))[:, :, ::-1].transpose(2, 0, 1).astype(numpy.float32) / 255.0)
-tensorOutput = torch.FloatTensor()
+def estimate(tensorInputFirst, tensorInputSecond):
+	tensorOutput = torch.FloatTensor()
 
-assert(tensorInputFirst.size(1) == tensorInputSecond.size(1))
-assert(tensorInputFirst.size(2) == tensorInputSecond.size(2))
+	assert(tensorInputFirst.size(1) == tensorInputSecond.size(1))
+	assert(tensorInputFirst.size(2) == tensorInputSecond.size(2))
 
-intWidth = tensorInputFirst.size(2)
-intHeight = tensorInputFirst.size(1)
+	intWidth = tensorInputFirst.size(2)
+	intHeight = tensorInputFirst.size(1)
 
-assert(intWidth <= 1280) # while our approach works with larger images, we do not recommend it unless you are aware of the implications
-assert(intHeight <= 720) # while our approach works with larger images, we do not recommend it unless you are aware of the implications
+	assert(intWidth <= 1280) # while our approach works with larger images, we do not recommend it unless you are aware of the implications
+	assert(intHeight <= 720) # while our approach works with larger images, we do not recommend it unless you are aware of the implications
 
-intPaddingLeft = int(math.floor(51 / 2.0))
-intPaddingTop = int(math.floor(51 / 2.0))
-intPaddingRight = int(math.floor(51 / 2.0))
-intPaddingBottom = int(math.floor(51 / 2.0))
-modulePaddingInput = torch.nn.Sequential()
-modulePaddingOutput = torch.nn.Sequential()
+	intPaddingLeft = int(math.floor(51 / 2.0))
+	intPaddingTop = int(math.floor(51 / 2.0))
+	intPaddingRight = int(math.floor(51 / 2.0))
+	intPaddingBottom = int(math.floor(51 / 2.0))
+	modulePaddingInput = torch.nn.Sequential()
+	modulePaddingOutput = torch.nn.Sequential()
 
-if True:
-	intPaddingWidth = intPaddingLeft + intWidth + intPaddingRight
-	intPaddingHeight = intPaddingTop + intHeight + intPaddingBottom
+	if True:
+		intPaddingWidth = intPaddingLeft + intWidth + intPaddingRight
+		intPaddingHeight = intPaddingTop + intHeight + intPaddingBottom
 
-	if intPaddingWidth != ((intPaddingWidth >> 7) << 7):
-		intPaddingWidth = (((intPaddingWidth >> 7) + 1) << 7) # more than necessary
+		if intPaddingWidth != ((intPaddingWidth >> 7) << 7):
+			intPaddingWidth = (((intPaddingWidth >> 7) + 1) << 7) # more than necessary
+		# end
+		
+		if intPaddingHeight != ((intPaddingHeight >> 7) << 7):
+			intPaddingHeight = (((intPaddingHeight >> 7) + 1) << 7) # more than necessary
+		# end
+
+		intPaddingWidth = intPaddingWidth - (intPaddingLeft + intWidth + intPaddingRight)
+		intPaddingHeight = intPaddingHeight - (intPaddingTop + intHeight + intPaddingBottom)
+
+		modulePaddingInput = torch.nn.ReplicationPad2d(padding=[ intPaddingLeft, intPaddingRight + intPaddingWidth, intPaddingTop, intPaddingBottom + intPaddingHeight ])
+		modulePaddingOutput = torch.nn.ReplicationPad2d(padding=[ 0 - intPaddingLeft, 0 - intPaddingRight - intPaddingWidth, 0 - intPaddingTop, 0 - intPaddingBottom - intPaddingHeight ])
 	# end
-	
-	if intPaddingHeight != ((intPaddingHeight >> 7) << 7):
-		intPaddingHeight = (((intPaddingHeight >> 7) + 1) << 7) # more than necessary
+
+	if True:
+		tensorInputFirst = tensorInputFirst.cuda()
+		tensorInputSecond = tensorInputSecond.cuda()
+		tensorOutput = tensorOutput.cuda()
+
+		modulePaddingInput = modulePaddingInput.cuda()
+		modulePaddingOutput = modulePaddingOutput.cuda()
 	# end
 
-	intPaddingWidth = intPaddingWidth - (intPaddingLeft + intWidth + intPaddingRight)
-	intPaddingHeight = intPaddingHeight - (intPaddingTop + intHeight + intPaddingBottom)
+	if True:
+		tensorPreprocessedFirst = modulePaddingInput(tensorInputFirst.view(1, 3, intHeight, intWidth))
+		tensorPreprocessedSecond = modulePaddingInput(tensorInputSecond.view(1, 3, intHeight, intWidth))
 
-	modulePaddingInput = torch.nn.ReplicationPad2d(padding=[ intPaddingLeft, intPaddingRight + intPaddingWidth, intPaddingTop, intPaddingBottom + intPaddingHeight ])
-	modulePaddingOutput = torch.nn.ReplicationPad2d(padding=[ 0 - intPaddingLeft, 0 - intPaddingRight - intPaddingWidth, 0 - intPaddingTop, 0 - intPaddingBottom - intPaddingHeight ])
+		tensorOutput.resize_(3, intHeight, intWidth).copy_(modulePaddingOutput(moduleNetwork(tensorPreprocessedFirst, tensorPreprocessedSecond))[0, :, :, :])
+	# end
+
+	if True:
+		tensorInputFirst = tensorInputFirst.cpu()
+		tensorInputSecond = tensorInputSecond.cpu()
+		tensorOutput = tensorOutput.cpu()
+	# end
+
+	return tensorOutput
 # end
 
-if True:
-	tensorInputFirst = tensorInputFirst.cuda()
-	tensorInputSecond = tensorInputSecond.cuda()
-	tensorOutput = tensorOutput.cuda()
+##########################################################
 
-	modulePaddingInput = modulePaddingInput.cuda()
-	modulePaddingOutput = modulePaddingOutput.cuda()
+if __name__ == '__main__':
+	tensorInputFirst = torch.FloatTensor(numpy.array(PIL.Image.open(arguments_strFirst))[:, :, ::-1].transpose(2, 0, 1).astype(numpy.float32) / 255.0)
+	tensorInputSecond = torch.FloatTensor(numpy.array(PIL.Image.open(arguments_strSecond))[:, :, ::-1].transpose(2, 0, 1).astype(numpy.float32) / 255.0)
+
+	tensorOutput = estimate(tensorInputFirst, tensorInputSecond)
+
+	PIL.Image.fromarray((tensorOutput.clamp(0.0, 1.0).numpy().transpose(1, 2, 0)[:, :, ::-1] * 255.0).astype(numpy.uint8)).save(arguments_strOut)
 # end
-
-if True:
-	tensorPreprocessedFirst = modulePaddingInput(tensorInputFirst.view(1, 3, intHeight, intWidth))
-	tensorPreprocessedSecond = modulePaddingInput(tensorInputSecond.view(1, 3, intHeight, intWidth))
-
-	tensorOutput.resize_(3, intHeight, intWidth).copy_(modulePaddingOutput(moduleNetwork(tensorPreprocessedFirst, tensorPreprocessedSecond))[0, :, :, :])
-# end
-
-if True:
-	tensorInputFirst = tensorInputFirst.cpu()
-	tensorInputSecond = tensorInputSecond.cpu()
-	tensorOutput = tensorOutput.cpu()
-# end
-
-PIL.Image.fromarray((tensorOutput.clamp(0.0, 1.0).numpy().transpose(1, 2, 0)[:, :, ::-1] * 255.0).astype(numpy.uint8)).save(arguments_strOut)
