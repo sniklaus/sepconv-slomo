@@ -93,7 +93,7 @@ class FunctionSepconv(torch.autograd.Function):
 		assert(vertical.is_contiguous() == True)
 		assert(horizontal.is_contiguous() == True)
 
-		output = input.new(intSample, intInputDepth, intOutputHeight, intOutputWidth).zero_()
+		output = input.new_zeros(intSample, intInputDepth, intOutputHeight, intOutputWidth)
 
 		if input.is_cuda == True:
 			class Stream:
@@ -137,9 +137,9 @@ class FunctionSepconv(torch.autograd.Function):
 
 		assert(gradOutput.is_contiguous() == True)
 
-		gradInput = input.new(intSample, intInputDepth, intInputHeight, intInputWidth).zero_() if self.needs_input_grad[0] == True else None
-		gradVertical = input.new(intSample, intFilterSize, intOutputHeight, intOutputWidth).zero_() if self.needs_input_grad[1] == True else None
-		gradHorizontal = input.new(intSample, intFilterSize, intOutputHeight, intOutputWidth).zero_() if self.needs_input_grad[2] == True else None
+		gradInput = input.new_zeros(intSample, intInputDepth, intInputHeight, intInputWidth) if self.needs_input_grad[0] == True else None
+		gradVertical = input.new_zeros(intSample, intFilterSize, intOutputHeight, intOutputWidth) if self.needs_input_grad[1] == True else None
+		gradHorizontal = input.new_zeros(intSample, intFilterSize, intOutputHeight, intOutputWidth) if self.needs_input_grad[2] == True else None
 
 		if input.is_cuda == True:
 			raise NotImplementedError()

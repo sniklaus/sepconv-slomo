@@ -132,8 +132,8 @@ class Network(torch.nn.Module):
 		self.load_state_dict(torch.load('./network-' + arguments_strModel + '.pytorch'))
 	# end
 
-	def forward(self, tensorInput1, tensorInput2):
-		tensorJoin = torch.cat([ tensorInput1, tensorInput2 ], 1)
+	def forward(self, tensorFirst, tensorSecond):
+		tensorJoin = torch.cat([ tensorFirst, tensorSecond ], 1)
 
 		tensorConv1 = self.moduleConv1(tensorJoin)
 		tensorPool1 = self.modulePool1(tensorConv1)
@@ -170,25 +170,25 @@ class Network(torch.nn.Module):
 
 		tensorCombine = tensorUpsample2 + tensorConv2
 
-		tensorDot1 = sepconv.FunctionSepconv()(self.modulePad(tensorInput1), self.moduleVertical1(tensorCombine), self.moduleHorizontal1(tensorCombine))
-		tensorDot2 = sepconv.FunctionSepconv()(self.modulePad(tensorInput2), self.moduleVertical2(tensorCombine), self.moduleHorizontal2(tensorCombine))
+		tensorDot1 = sepconv.FunctionSepconv()(self.modulePad(tensorFirst), self.moduleVertical1(tensorCombine), self.moduleHorizontal1(tensorCombine))
+		tensorDot2 = sepconv.FunctionSepconv()(self.modulePad(tensorSecond), self.moduleVertical2(tensorCombine), self.moduleHorizontal2(tensorCombine))
 
 		return tensorDot1 + tensorDot2
 	# end
 # end
 
-moduleNetwork = Network().cuda()
+moduleNetwork = Network().cuda().eval()
 
 ##########################################################
 
-def estimate(tensorInputFirst, tensorInputSecond):
+def estimate(tensorFirst, tensorSecond):
 	tensorOutput = torch.FloatTensor()
 
-	assert(tensorInputFirst.size(1) == tensorInputSecond.size(1))
-	assert(tensorInputFirst.size(2) == tensorInputSecond.size(2))
+	assert(tensorFirst.size(1) == tensorSecond.size(1))
+	assert(tensorFirst.size(2) == tensorSecond.size(2))
 
-	intWidth = tensorInputFirst.size(2)
-	intHeight = tensorInputFirst.size(1)
+	intWidth = tensorFirst.size(2)
+	intHeight = tensorFirst.size(1)
 
 	assert(intWidth <= 1280) # while our approach works with larger images, we do not recommend it unless you are aware of the implications
 	assert(intHeight <= 720) # while our approach works with larger images, we do not recommend it unless you are aware of the implications
@@ -220,8 +220,8 @@ def estimate(tensorInputFirst, tensorInputSecond):
 	# end
 
 	if True:
-		tensorInputFirst = tensorInputFirst.cuda()
-		tensorInputSecond = tensorInputSecond.cuda()
+		tensorFirst = tensorFirst.cuda()
+		tensorSecond = tensorSecond.cuda()
 		tensorOutput = tensorOutput.cuda()
 
 		modulePaddingInput = modulePaddingInput.cuda()
@@ -229,15 +229,15 @@ def estimate(tensorInputFirst, tensorInputSecond):
 	# end
 
 	if True:
-		tensorPreprocessedFirst = modulePaddingInput(tensorInputFirst.view(1, 3, intHeight, intWidth))
-		tensorPreprocessedSecond = modulePaddingInput(tensorInputSecond.view(1, 3, intHeight, intWidth))
+		tensorPreprocessedFirst = modulePaddingInput(tensorFirst.view(1, 3, intHeight, intWidth))
+		tensorPreprocessedSecond = modulePaddingInput(tensorSecond.view(1, 3, intHeight, intWidth))
 
 		tensorOutput.resize_(3, intHeight, intWidth).copy_(modulePaddingOutput(moduleNetwork(tensorPreprocessedFirst, tensorPreprocessedSecond))[0, :, :, :])
 	# end
 
 	if True:
-		tensorInputFirst = tensorInputFirst.cpu()
-		tensorInputSecond = tensorInputSecond.cpu()
+		tensorFirst = tensorFirst.cpu()
+		tensorSecond = tensorSecond.cpu()
 		tensorOutput = tensorOutput.cpu()
 	# end
 
@@ -247,10 +247,10 @@ def estimate(tensorInputFirst, tensorInputSecond):
 ##########################################################
 
 if __name__ == '__main__':
-	tensorInputFirst = torch.FloatTensor(numpy.array(PIL.Image.open(arguments_strFirst))[:, :, ::-1].transpose(2, 0, 1).astype(numpy.float32) / 255.0)
-	tensorInputSecond = torch.FloatTensor(numpy.array(PIL.Image.open(arguments_strSecond))[:, :, ::-1].transpose(2, 0, 1).astype(numpy.float32) / 255.0)
+	tensorFirst = torch.FloatTensor(numpy.array(PIL.Image.open(arguments_strFirst))[:, :, ::-1].transpose(2, 0, 1).astype(numpy.float32) * (1.0 / 255.0))
+	tensorSecond = torch.FloatTensor(numpy.array(PIL.Image.open(arguments_strSecond))[:, :, ::-1].transpose(2, 0, 1).astype(numpy.float32) * (1.0 / 255.0))
 
-	tensorOutput = estimate(tensorInputFirst, tensorInputSecond)
+	tensorOutput = estimate(tensorFirst, tensorSecond)
 
 	PIL.Image.fromarray((tensorOutput.clamp(0.0, 1.0).numpy().transpose(1, 2, 0)[:, :, ::-1] * 255.0).astype(numpy.uint8)).save(arguments_strOut)
 # end
