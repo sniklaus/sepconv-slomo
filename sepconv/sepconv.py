@@ -1,6 +1,11 @@
-import cupy
 import torch
+
+import cupy
 import re
+
+class Stream:
+	ptr = torch.cuda.current_stream().cuda_stream
+# end
 
 kernel_Sepconv_updateOutput = '''
 	extern "C" __global__ void kernel_Sepconv_updateOutput(
@@ -96,10 +101,6 @@ class FunctionSepconv(torch.autograd.Function):
 		output = input.new_zeros(intSample, intInputDepth, intOutputHeight, intOutputWidth)
 
 		if input.is_cuda == True:
-			class Stream:
-				ptr = torch.cuda.current_stream().cuda_stream
-			# end
-
 			n = output.nelement()
 			cupy_launch('kernel_Sepconv_updateOutput', cupy_kernel('kernel_Sepconv_updateOutput', {
 				'input': input,

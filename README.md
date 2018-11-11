@@ -5,7 +5,7 @@ This is a reference implementation of Video Frame Interpolation via Adaptive Sep
 
 <a href="https://arxiv.org/abs/1708.01692" rel="Paper"><img src="http://content.sniklaus.com/sepconv/paper.jpg" alt="Paper" width="100%"></a>
 
-For the Torch version of this work, please see: https://github.com/sniklaus/torch-sepconv
+For a reimplemntation of our work, see: https://github.com/martkartasev/sepconv
 <br />
 For a third-party fork with video support, consider: https://github.com/dagf2101/pytorch-sepconv
 

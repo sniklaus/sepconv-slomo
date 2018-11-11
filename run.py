@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+import torch
+import torch.utils.serialization
+
 import getopt
 import math
 import numpy
@@ -7,8 +10,6 @@ import os
 import PIL
 import PIL.Image
 import sys
-import torch
-import torch.utils.serialization
 
 try:
 	from sepconv import sepconv # the custom separable convolution layer
@@ -34,19 +35,10 @@ arguments_strSecond = './images/second.png'
 arguments_strOut = './out.png'
 
 for strOption, strArgument in getopt.getopt(sys.argv[1:], '', [ strParameter[2:] + '=' for strParameter in sys.argv[1::2] ])[0]:
-	if strOption == '--model':
-		arguments_strModel = strArgument # which model to use, l1 or lf, please see our paper for more details
-
-	elif strOption == '--first':
-		arguments_strFirst = strArgument # path to the first frame
-
-	elif strOption == '--second':
-		arguments_strSecond = strArgument # path to the second frame
-
-	elif strOption == '--out':
-		arguments_strOut = strArgument # path to where the output should be stored
-
-	# end
+	if strOption == '--model' and strArgument != '': arguments_strModel = strArgument # which model to use, l1 or lf, please see our paper for more details
+	if strOption == '--first' and strArgument != '': arguments_strFirst = strArgument # path to the first frame
+	if strOption == '--second' and strArgument != '': arguments_strSecond = strArgument # path to the second frame
+	if strOption == '--out' and strArgument != '': arguments_strOut = strArgument # path to where the output should be stored
 # end
 
 ##########################################################
