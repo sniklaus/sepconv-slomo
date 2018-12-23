@@ -75,11 +75,8 @@ def cupy_launch(strFunction, strKernel):
 	return cupy.cuda.compile_with_cache(strKernel).get_function(strFunction)
 # end
 
-class FunctionSepconv(torch.autograd.Function):
-	def __init__(self):
-		super(FunctionSepconv, self).__init__()
-	# end
-
+class _FunctionSepconv(torch.autograd.Function):
+	@staticmethod
 	def forward(self, input, vertical, horizontal):
 		self.save_for_backward(input, vertical, horizontal)
 
@@ -122,6 +119,7 @@ class FunctionSepconv(torch.autograd.Function):
 		return output
 	# end
 
+	@staticmethod
 	def backward(self, gradOutput):
 		input, vertical, horizontal = self.saved_tensors
 
@@ -154,12 +152,16 @@ class FunctionSepconv(torch.autograd.Function):
 	# end
 # end
 
+def FunctionSepconv(tensorInput, tensorVertical, tensorHorizontal):
+	return _FunctionSepconv.apply(tensorInput, tensorVertical, tensorHorizontal)
+# end
+
 class ModuleSepconv(torch.nn.Module):
 	def __init__(self):
 		super(ModuleSepconv, self).__init__()
 	# end
 
-	def forward(self, tensorFirst, tensorSecond):
-		return FunctionSepconv()(tensorFirst, tensorSecond)
+	def forward(self, tensorInput, tensorVertical, tensorHorizontal):
+		return _FunctionSepconv.apply(tensorInput, tensorVertical, tensorHorizontal)
 	# end
 # end

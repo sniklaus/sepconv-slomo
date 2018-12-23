@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import torch
-import torch.utils.serialization
 
 import getopt
 import math
@@ -19,7 +18,7 @@ except:
 
 ##########################################################
 
-assert(int(torch.__version__.replace('.', '')) >= 40) # requires at least pytorch version 0.4.0
+assert(int(str('').join(torch.__version__.split('.')[0:3])) >= 40) # requires at least pytorch version 0.4.0
 
 torch.set_grad_enabled(False) # make sure to not compute gradients for computational performance
 
@@ -119,8 +118,6 @@ class Network(torch.nn.Module):
 		self.moduleHorizontal1 = Subnet()
 		self.moduleHorizontal2 = Subnet()
 
-		self.modulePad = torch.nn.ReplicationPad2d([ int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)) ])
-
 		self.load_state_dict(torch.load('./network-' + arguments_strModel + '.pytorch'))
 	# end
 
@@ -162,8 +159,11 @@ class Network(torch.nn.Module):
 
 		tensorCombine = tensorUpsample2 + tensorConv2
 
-		tensorDot1 = sepconv.FunctionSepconv()(self.modulePad(tensorFirst), self.moduleVertical1(tensorCombine), self.moduleHorizontal1(tensorCombine))
-		tensorDot2 = sepconv.FunctionSepconv()(self.modulePad(tensorSecond), self.moduleVertical2(tensorCombine), self.moduleHorizontal2(tensorCombine))
+		tensorFirst = torch.nn.functional.pad(input=tensorFirst, pad=[ int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)) ], mode='replicate')
+		tensorSecond = torch.nn.functional.pad(input=tensorSecond, pad=[ int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)) ], mode='replicate')
+
+		tensorDot1 = sepconv.FunctionSepconv(tensorInput=tensorFirst, tensorVertical=self.moduleVertical1(tensorCombine), tensorHorizontal=self.moduleHorizontal1(tensorCombine))
+		tensorDot2 = sepconv.FunctionSepconv(tensorInput=tensorSecond, tensorVertical=self.moduleVertical2(tensorCombine), tensorHorizontal=self.moduleHorizontal2(tensorCombine))
 
 		return tensorDot1 + tensorDot2
 	# end
