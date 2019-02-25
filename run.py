@@ -18,7 +18,7 @@ except:
 
 ##########################################################
 
-assert(int(str('').join(torch.__version__.split('.')[0:3])) >= 41) # requires at least pytorch version 0.4.0
+assert(int(str('').join(torch.__version__.split('.')[0:3])) >= 41) # requires at least pytorch version 0.4.1
 
 torch.set_grad_enabled(False) # make sure to not compute gradients for computational performance
 
@@ -57,6 +57,14 @@ class Network(torch.nn.Module):
 			)
 		# end
 
+		def Upsample(intInput, intOutput):
+			return torch.nn.Sequential(
+				torch.nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True),
+				torch.nn.Conv2d(in_channels=intOutput, out_channels=intOutput, kernel_size=3, stride=1, padding=1),
+				torch.nn.ReLU(inplace=False)
+			)
+		# end
+
 		def Subnet():
 			return torch.nn.Sequential(
 				torch.nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, stride=1, padding=1),
@@ -71,47 +79,20 @@ class Network(torch.nn.Module):
 		# end
 
 		self.moduleConv1 = Basic(6, 32)
-		self.modulePool1 = torch.nn.AvgPool2d(kernel_size=2, stride=2)
-
 		self.moduleConv2 = Basic(32, 64)
-		self.modulePool2 = torch.nn.AvgPool2d(kernel_size=2, stride=2)
-
 		self.moduleConv3 = Basic(64, 128)
-		self.modulePool3 = torch.nn.AvgPool2d(kernel_size=2, stride=2)
-
 		self.moduleConv4 = Basic(128, 256)
-		self.modulePool4 = torch.nn.AvgPool2d(kernel_size=2, stride=2)
-
 		self.moduleConv5 = Basic(256, 512)
-		self.modulePool5 = torch.nn.AvgPool2d(kernel_size=2, stride=2)
 
 		self.moduleDeconv5 = Basic(512, 512)
-		self.moduleUpsample5 = torch.nn.Sequential(
-			torch.nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True),
-			torch.nn.Conv2d(in_channels=512, out_channels=512, kernel_size=3, stride=1, padding=1),
-			torch.nn.ReLU(inplace=False)
-		)
-
 		self.moduleDeconv4 = Basic(512, 256)
-		self.moduleUpsample4 = torch.nn.Sequential(
-			torch.nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True),
-			torch.nn.Conv2d(in_channels=256, out_channels=256, kernel_size=3, stride=1, padding=1),
-			torch.nn.ReLU(inplace=False)
-		)
-
 		self.moduleDeconv3 = Basic(256, 128)
-		self.moduleUpsample3 = torch.nn.Sequential(
-			torch.nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True),
-			torch.nn.Conv2d(in_channels=128, out_channels=128, kernel_size=3, stride=1, padding=1),
-			torch.nn.ReLU(inplace=False)
-		)
-
 		self.moduleDeconv2 = Basic(128, 64)
-		self.moduleUpsample2 = torch.nn.Sequential(
-			torch.nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True),
-			torch.nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, stride=1, padding=1),
-			torch.nn.ReLU(inplace=False)
-		)
+
+		self.moduleUpsample5 = Upsample(512, 512)
+		self.moduleUpsample4 = Upsample(256, 256)
+		self.moduleUpsample3 = Upsample(128, 128)
+		self.moduleUpsample2 = Upsample(64, 64)
 
 		self.moduleVertical1 = Subnet()
 		self.moduleVertical2 = Subnet()
@@ -122,42 +103,18 @@ class Network(torch.nn.Module):
 	# end
 
 	def forward(self, tensorFirst, tensorSecond):
-		tensorJoin = torch.cat([ tensorFirst, tensorSecond ], 1)
+		tensorConv1 = self.moduleConv1(torch.cat([ tensorFirst, tensorSecond ], 1))
+		tensorConv2 = self.moduleConv2(torch.nn.functional.avg_pool2d(input=tensorConv1, kernel_size=2, stride=2))
+		tensorConv3 = self.moduleConv3(torch.nn.functional.avg_pool2d(input=tensorConv2, kernel_size=2, stride=2))
+		tensorConv4 = self.moduleConv4(torch.nn.functional.avg_pool2d(input=tensorConv3, kernel_size=2, stride=2))
+		tensorConv5 = self.moduleConv5(torch.nn.functional.avg_pool2d(input=tensorConv4, kernel_size=2, stride=2))
 
-		tensorConv1 = self.moduleConv1(tensorJoin)
-		tensorPool1 = self.modulePool1(tensorConv1)
+		tensorDeconv5 = self.moduleUpsample5(self.moduleDeconv5(torch.nn.functional.avg_pool2d(input=tensorConv5, kernel_size=2, stride=2)))
+		tensorDeconv4 = self.moduleUpsample4(self.moduleDeconv4(tensorDeconv5 + tensorConv5))
+		tensorDeconv3 = self.moduleUpsample3(self.moduleDeconv3(tensorDeconv4 + tensorConv4))
+		tensorDeconv2 = self.moduleUpsample2(self.moduleDeconv2(tensorDeconv3 + tensorConv3))
 
-		tensorConv2 = self.moduleConv2(tensorPool1)
-		tensorPool2 = self.modulePool2(tensorConv2)
-
-		tensorConv3 = self.moduleConv3(tensorPool2)
-		tensorPool3 = self.modulePool3(tensorConv3)
-
-		tensorConv4 = self.moduleConv4(tensorPool3)
-		tensorPool4 = self.modulePool4(tensorConv4)
-
-		tensorConv5 = self.moduleConv5(tensorPool4)
-		tensorPool5 = self.modulePool5(tensorConv5)
-
-		tensorDeconv5 = self.moduleDeconv5(tensorPool5)
-		tensorUpsample5 = self.moduleUpsample5(tensorDeconv5)
-
-		tensorCombine = tensorUpsample5 + tensorConv5
-
-		tensorDeconv4 = self.moduleDeconv4(tensorCombine)
-		tensorUpsample4 = self.moduleUpsample4(tensorDeconv4)
-
-		tensorCombine = tensorUpsample4 + tensorConv4
-
-		tensorDeconv3 = self.moduleDeconv3(tensorCombine)
-		tensorUpsample3 = self.moduleUpsample3(tensorDeconv3)
-
-		tensorCombine = tensorUpsample3 + tensorConv3
-
-		tensorDeconv2 = self.moduleDeconv2(tensorCombine)
-		tensorUpsample2 = self.moduleUpsample2(tensorDeconv2)
-
-		tensorCombine = tensorUpsample2 + tensorConv2
+		tensorCombine = tensorDeconv2 + tensorConv2
 
 		tensorFirst = torch.nn.functional.pad(input=tensorFirst, pad=[ int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)) ], mode='replicate')
 		tensorSecond = torch.nn.functional.pad(input=tensorSecond, pad=[ int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)) ], mode='replicate')
@@ -174,8 +131,6 @@ moduleNetwork = Network().cuda().eval()
 ##########################################################
 
 def estimate(tensorFirst, tensorSecond):
-	tensorOutput = torch.FloatTensor()
-
 	assert(tensorFirst.size(1) == tensorSecond.size(1))
 	assert(tensorFirst.size(2) == tensorSecond.size(2))
 
@@ -185,55 +140,24 @@ def estimate(tensorFirst, tensorSecond):
 	assert(intWidth <= 1280) # while our approach works with larger images, we do not recommend it unless you are aware of the implications
 	assert(intHeight <= 720) # while our approach works with larger images, we do not recommend it unless you are aware of the implications
 
-	intPaddingLeft = int(math.floor(51 / 2.0))
-	intPaddingTop = int(math.floor(51 / 2.0))
-	intPaddingRight = int(math.floor(51 / 2.0))
-	intPaddingBottom = int(math.floor(51 / 2.0))
-	modulePaddingInput = torch.nn.Sequential()
-	modulePaddingOutput = torch.nn.Sequential()
+	tensorPreprocessedFirst = tensorFirst.cuda().view(1, 3, intHeight, intWidth)
+	tensorPreprocessedSecond = tensorSecond.cuda().view(1, 3, intHeight, intWidth)
 
-	if True:
-		intPaddingWidth = intPaddingLeft + intWidth + intPaddingRight
-		intPaddingHeight = intPaddingTop + intHeight + intPaddingBottom
+	intPreprocessedWidth = int(math.floor(51 / 2.0)) + intWidth + int(math.floor(51 / 2.0))
+	intPreprocessedHeight = int(math.floor(51 / 2.0)) + intHeight + int(math.floor(51 / 2.0))
 
-		if intPaddingWidth != ((intPaddingWidth >> 7) << 7):
-			intPaddingWidth = (((intPaddingWidth >> 7) + 1) << 7) # more than necessary
-		# end
-		
-		if intPaddingHeight != ((intPaddingHeight >> 7) << 7):
-			intPaddingHeight = (((intPaddingHeight >> 7) + 1) << 7) # more than necessary
-		# end
-
-		intPaddingWidth = intPaddingWidth - (intPaddingLeft + intWidth + intPaddingRight)
-		intPaddingHeight = intPaddingHeight - (intPaddingTop + intHeight + intPaddingBottom)
-
-		modulePaddingInput = torch.nn.ReplicationPad2d(padding=[ intPaddingLeft, intPaddingRight + intPaddingWidth, intPaddingTop, intPaddingBottom + intPaddingHeight ])
-		modulePaddingOutput = torch.nn.ReplicationPad2d(padding=[ 0 - intPaddingLeft, 0 - intPaddingRight - intPaddingWidth, 0 - intPaddingTop, 0 - intPaddingBottom - intPaddingHeight ])
+	if intPreprocessedWidth != ((intPreprocessedWidth >> 7) << 7):
+		intPreprocessedWidth = (((intPreprocessedWidth >> 7) + 1) << 7) - intPreprocessedWidth # more than necessary
+	# end
+	
+	if intPreprocessedHeight != ((intPreprocessedHeight >> 7) << 7):
+		intPreprocessedHeight = (((intPreprocessedHeight >> 7) + 1) << 7) - intPreprocessedHeight # more than necessary
 	# end
 
-	if True:
-		tensorFirst = tensorFirst.cuda()
-		tensorSecond = tensorSecond.cuda()
-		tensorOutput = tensorOutput.cuda()
+	tensorPreprocessedFirst = torch.nn.functional.pad(input=tensorPreprocessedFirst, pad=[ int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)) + intPreprocessedWidth, int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)) + intPreprocessedHeight ], mode='replicate')
+	tensorPreprocessedSecond = torch.nn.functional.pad(input=tensorPreprocessedSecond, pad=[ int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)) + intPreprocessedWidth, int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)) + intPreprocessedHeight ], mode='replicate')
 
-		modulePaddingInput = modulePaddingInput.cuda()
-		modulePaddingOutput = modulePaddingOutput.cuda()
-	# end
-
-	if True:
-		tensorPreprocessedFirst = modulePaddingInput(tensorFirst.view(1, 3, intHeight, intWidth))
-		tensorPreprocessedSecond = modulePaddingInput(tensorSecond.view(1, 3, intHeight, intWidth))
-
-		tensorOutput.resize_(3, intHeight, intWidth).copy_(modulePaddingOutput(moduleNetwork(tensorPreprocessedFirst, tensorPreprocessedSecond))[0, :, :, :])
-	# end
-
-	if True:
-		tensorFirst = tensorFirst.cpu()
-		tensorSecond = tensorSecond.cpu()
-		tensorOutput = tensorOutput.cpu()
-	# end
-
-	return tensorOutput
+	return torch.nn.functional.pad(input=moduleNetwork(tensorPreprocessedFirst, tensorPreprocessedSecond), pad=[ 0 - int(math.floor(51 / 2.0)), 0 - int(math.floor(51 / 2.0)) - intPreprocessedWidth, 0 - int(math.floor(51 / 2.0)), 0 - int(math.floor(51 / 2.0)) - intPreprocessedHeight ], mode='replicate')[0, :, :, :].cpu()
 # end
 
 ##########################################################
