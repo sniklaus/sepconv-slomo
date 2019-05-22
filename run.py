@@ -22,8 +22,6 @@ assert(int(str('').join(torch.__version__.split('.')[0:3])) >= 41) # requires at
 
 torch.set_grad_enabled(False) # make sure to not compute gradients for computational performance
 
-torch.cuda.device(1) # change this if you have a multiple graphics cards and you want to utilize them
-
 torch.backends.cudnn.enabled = True # make sure to use cudnn for computational performance
 
 ##########################################################
