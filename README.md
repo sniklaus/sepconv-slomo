@@ -21,6 +21,8 @@ To run it on your own pair of frames, use the following command. You can either 
 python run.py --model lf --first ./images/first.png --second ./images/second.png --out ./out.png
 ```
 
+For a quick benchmark using examples from the Middlebury benchmark for optical flow, run `python benchmark.py`. You can use it to quickly verify that the provided implementation runs as expected.
+
 ## video
 <a href="http://web.cecs.pdx.edu/~fliu/project/sepconv/demo.mp4" rel="Video"><img src="http://web.cecs.pdx.edu/~fliu/project/sepconv/screen.jpg" alt="Video" width="100%"></a>
 
