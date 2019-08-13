@@ -29,10 +29,19 @@ if __name__ == '__main__':
 
 		dblPsnr.append(skimage.measure.compare_psnr(im_true=numpy.array(PIL.Image.open(strTruth))[:, :, ::-1], im_test=numpyEstimate, data_range=255))
 		dblSsim.append(skimage.measure.compare_ssim(X=numpy.array(PIL.Image.open(strTruth))[:, :, ::-1], Y=numpyEstimate, data_range=255, multichannel=True))
-
-		print(strTruth, dblPsnr[-1], dblSsim[-1])
 	# end
 
-	print('average psnr', numpy.mean(dblPsnr), '(should be 35.73 for the l1 model and 35.03 for the lf model)')
-	print('average ssim', numpy.mean(dblSsim), '(should be 0.959 for the l1 model and 0.954 for the lf model)')
+	print('computed average psnr', numpy.mean(dblPsnr))
+	print('computed average ssim', numpy.mean(dblSsim))
+	print('')
+	print('see table below for reference results')
+	print('')
+	print('+---------+------------+---------+---------+')
+	print('| model   | padding    | psnr    | ssim    |')
+	print('+---------+------------+---------+---------+')
+	print('| l1      | paper      | 35.73   | 0.959   |')
+	print('| lf      | paper      | 35.03   | 0.954   |')
+	print('| l1      | improved   | 35.85   | 0.959   |')
+	print('| lf      | improved   | 35.16   | 0.954   |')
+	print('+---------+------------+---------+---------+')
 # end

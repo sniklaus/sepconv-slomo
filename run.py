@@ -8,7 +8,10 @@ import numpy
 import os
 import PIL
 import PIL.Image
+import random
+import shutil
 import sys
+import tempfile
 
 try:
 	from sepconv import sepconv # the custom separable convolution layer
@@ -27,14 +30,18 @@ torch.backends.cudnn.enabled = True # make sure to use cudnn for computational p
 ##########################################################
 
 arguments_strModel = 'lf'
+arguments_strPadding = 'improved'
 arguments_strFirst = './images/first.png'
 arguments_strSecond = './images/second.png'
+arguments_strVideo = './videos/car-turn.mp4'
 arguments_strOut = './out.png'
 
 for strOption, strArgument in getopt.getopt(sys.argv[1:], '', [ strParameter[2:] + '=' for strParameter in sys.argv[1::2] ])[0]:
 	if strOption == '--model' and strArgument != '': arguments_strModel = strArgument # which model to use, l1 or lf, please see our paper for more details
+	if strOption == '--padding' and strArgument != '': arguments_strPadding = strArgument # which padding to use, the one used in the paper or the improved one
 	if strOption == '--first' and strArgument != '': arguments_strFirst = strArgument # path to the first frame
 	if strOption == '--second' and strArgument != '': arguments_strSecond = strArgument # path to the second frame
+	if strOption == '--video' and strArgument != '': arguments_strVideo = strArgument # path to a video
 	if strOption == '--out' and strArgument != '': arguments_strOut = strArgument # path to where the output should be stored
 # end
 
@@ -141,30 +148,74 @@ def estimate(tensorFirst, tensorSecond):
 	tensorPreprocessedFirst = tensorFirst.cuda().view(1, 3, intHeight, intWidth)
 	tensorPreprocessedSecond = tensorSecond.cuda().view(1, 3, intHeight, intWidth)
 
-	intPreprocessedWidth = int(math.floor(51 / 2.0)) + intWidth + int(math.floor(51 / 2.0))
-	intPreprocessedHeight = int(math.floor(51 / 2.0)) + intHeight + int(math.floor(51 / 2.0))
+	if arguments_strPadding == 'paper':
+		intPaddingLeft, intPaddingTop, intPaddingBottom, intPaddingRight = int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)) ,int(math.floor(51 / 2.0))
+
+	elif arguments_strPadding == 'improved':
+		intPaddingLeft, intPaddingTop, intPaddingBottom, intPaddingRight = 0, 0, 0, 0
+
+	# end
+
+	intPreprocessedWidth = intPaddingLeft + intWidth + intPaddingRight
+	intPreprocessedHeight = intPaddingTop + intHeight + intPaddingBottom
 
 	if intPreprocessedWidth != ((intPreprocessedWidth >> 7) << 7):
-		intPreprocessedWidth = (((intPreprocessedWidth >> 7) + 1) << 7) - intPreprocessedWidth # more than necessary
+		intPreprocessedWidth = (((intPreprocessedWidth >> 7) + 1) << 7) # more than necessary
 	# end
 	
 	if intPreprocessedHeight != ((intPreprocessedHeight >> 7) << 7):
-		intPreprocessedHeight = (((intPreprocessedHeight >> 7) + 1) << 7) - intPreprocessedHeight # more than necessary
+		intPreprocessedHeight = (((intPreprocessedHeight >> 7) + 1) << 7) # more than necessary
 	# end
 
-	tensorPreprocessedFirst = torch.nn.functional.pad(input=tensorPreprocessedFirst, pad=[ int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)) + intPreprocessedWidth, int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)) + intPreprocessedHeight ], mode='replicate')
-	tensorPreprocessedSecond = torch.nn.functional.pad(input=tensorPreprocessedSecond, pad=[ int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)) + intPreprocessedWidth, int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)) + intPreprocessedHeight ], mode='replicate')
+	intPaddingRight = intPreprocessedWidth - intWidth - intPaddingLeft
+	intPaddingBottom = intPreprocessedHeight - intHeight - intPaddingTop
 
-	return torch.nn.functional.pad(input=moduleNetwork(tensorPreprocessedFirst, tensorPreprocessedSecond), pad=[ 0 - int(math.floor(51 / 2.0)), 0 - int(math.floor(51 / 2.0)) - intPreprocessedWidth, 0 - int(math.floor(51 / 2.0)), 0 - int(math.floor(51 / 2.0)) - intPreprocessedHeight ], mode='replicate')[0, :, :, :].cpu()
+	tensorPreprocessedFirst = torch.nn.functional.pad(input=tensorPreprocessedFirst, pad=[ intPaddingLeft, intPaddingRight, intPaddingTop, intPaddingBottom ], mode='replicate')
+	tensorPreprocessedSecond = torch.nn.functional.pad(input=tensorPreprocessedSecond, pad=[ intPaddingLeft, intPaddingRight, intPaddingTop, intPaddingBottom ], mode='replicate')
+
+	return torch.nn.functional.pad(input=moduleNetwork(tensorPreprocessedFirst, tensorPreprocessedSecond), pad=[ 0 - intPaddingLeft, 0 - intPaddingRight, 0 - intPaddingTop, 0 - intPaddingBottom ], mode='replicate')[0, :, :, :].cpu()
 # end
 
 ##########################################################
 
 if __name__ == '__main__':
-	tensorFirst = torch.FloatTensor(numpy.array(PIL.Image.open(arguments_strFirst))[:, :, ::-1].transpose(2, 0, 1).astype(numpy.float32) * (1.0 / 255.0))
-	tensorSecond = torch.FloatTensor(numpy.array(PIL.Image.open(arguments_strSecond))[:, :, ::-1].transpose(2, 0, 1).astype(numpy.float32) * (1.0 / 255.0))
+	if arguments_strOut.split('.')[-1] in [ 'bmp', 'jpg', 'jpeg', 'png' ]:
+		tensorFirst = torch.FloatTensor(numpy.array(PIL.Image.open(arguments_strFirst))[:, :, ::-1].transpose(2, 0, 1).astype(numpy.float32) * (1.0 / 255.0))
+		tensorSecond = torch.FloatTensor(numpy.array(PIL.Image.open(arguments_strSecond))[:, :, ::-1].transpose(2, 0, 1).astype(numpy.float32) * (1.0 / 255.0))
 
-	tensorOutput = estimate(tensorFirst, tensorSecond)
+		tensorOutput = estimate(tensorFirst, tensorSecond)
 
-	PIL.Image.fromarray((tensorOutput.clamp(0.0, 1.0).numpy().transpose(1, 2, 0)[:, :, ::-1] * 255.0).astype(numpy.uint8)).save(arguments_strOut)
+		PIL.Image.fromarray((tensorOutput.clamp(0.0, 1.0).numpy().transpose(1, 2, 0)[:, :, ::-1] * 255.0).astype(numpy.uint8)).save(arguments_strOut)
+
+	elif arguments_strOut.split('.')[-1] in [ 'avi', 'mp4', 'webm', 'wmv' ]:
+		import moviepy
+		import moviepy.editor
+
+		strTempdir = tempfile.gettempdir() + '/' + str.join('', [ random.choice('abcdefghijklmnopqrstuvwxyz0123456789') for intCount in range(20) ]); os.makedirs(strTempdir + '/')
+
+		intFrames = 0
+		tensorFrames = [ None, None, None, None, None ]
+
+		for intFrame, numpyFrame in enumerate(numpyFrame[:, :, ::-1] for numpyFrame in moviepy.editor.VideoFileClip(filename=arguments_strVideo).iter_frames():
+			tensorFrames[4] = torch.FloatTensor(numpyFrame.transpose(2, 0, 1).astype(numpy.float32) * (1.0 / 255.0))
+
+			if tensorFrames[0] is not None:
+				tensorFrames[2] = estimate(tensorFrames[0], tensorFrames[4])
+				tensorFrames[1] = estimate(tensorFrames[0], tensorFrames[2])
+				tensorFrames[3] = estimate(tensorFrames[2], tensorFrames[4])
+
+				PIL.Image.fromarray((tensorFrames[0].clamp(0.0, 1.0).numpy().transpose(1, 2, 0)[:, :, ::-1] * 255.0).astype(numpy.uint8)).save(strTempdir + '/' + str(intFrames).zfill(5) + '.png'); intFrames += 1
+				PIL.Image.fromarray((tensorFrames[1].clamp(0.0, 1.0).numpy().transpose(1, 2, 0)[:, :, ::-1] * 255.0).astype(numpy.uint8)).save(strTempdir + '/' + str(intFrames).zfill(5) + '.png'); intFrames += 1
+				PIL.Image.fromarray((tensorFrames[2].clamp(0.0, 1.0).numpy().transpose(1, 2, 0)[:, :, ::-1] * 255.0).astype(numpy.uint8)).save(strTempdir + '/' + str(intFrames).zfill(5) + '.png'); intFrames += 1
+				PIL.Image.fromarray((tensorFrames[3].clamp(0.0, 1.0).numpy().transpose(1, 2, 0)[:, :, ::-1] * 255.0).astype(numpy.uint8)).save(strTempdir + '/' + str(intFrames).zfill(5) + '.png'); intFrames += 1
+			# end
+
+			tensorFrames[0] = torch.FloatTensor(numpyFrame.transpose(2, 0, 1).astype(numpy.float32) * (1.0 / 255.0))
+		# end
+
+		moviepy.editor.ImageSequenceClip(sequence=strTempdir + '/', fps=25).write_videofile(arguments_strOut)
+
+		shutil.rmtree(strTempdir + '/')
+
+	# end
 # end

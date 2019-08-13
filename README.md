@@ -7,12 +7,14 @@ This is a reference implementation of Video Frame Interpolation via Adaptive Sep
 
 For a reimplemntation of our work, see: https://github.com/martkartasev/sepconv
 <br />
-For a third-party fork with video support, consider: https://github.com/dagf2101/pytorch-sepconv
+And for another adaptation, consider: https://github.com/HyeongminLEE/pytorch-sepconv
 
 ## setup
 To download the pre-trained models, run `bash download.bash`.
 
 The separable convolution layer is implemented in CUDA using CuPy, which is why CuPy is a required dependency. It can be installed using `pip install cupy` or alternatively using one of the provided binary packages as outlined in the CuPy repository.
+
+If you plan to process videos, then please also make sure to have `pip install moviepy` installed.
 
 ## usage
 To run it on your own pair of frames, use the following command. You can either select the `l1` or the `lf` model, please see our paper for more details. In short, the `l1` model should be used for quantitative evaluations and the `lf` model for qualitative comparisons.
@@ -21,7 +23,13 @@ To run it on your own pair of frames, use the following command. You can either 
 python run.py --model lf --first ./images/first.png --second ./images/second.png --out ./out.png
 ```
 
-For a quick benchmark using examples from the Middlebury benchmark for optical flow, run `python benchmark.py`. You can use it to quickly verify that the provided implementation runs as expected.
+To run in on a video, use the following command.
+
+```
+python run.py --model lf --video ./videos/car-turn.mp4 --out ./out.mp4
+```
+
+For a quick benchmark using examples from the Middlebury benchmark for optical flow, run `python benchmark.py`. You can use it to easily verify that the provided implementation runs as expected.
 
 ## video
 <a href="http://web.cecs.pdx.edu/~fliu/project/sepconv/demo.mp4" rel="Video"><img src="http://web.cecs.pdx.edu/~fliu/project/sepconv/screen.jpg" alt="Video" width="100%"></a>
