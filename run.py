@@ -196,7 +196,7 @@ if __name__ == '__main__':
 		intFrames = 0
 		tensorFrames = [ None, None, None, None, None ]
 
-		for intFrame, numpyFrame in enumerate(numpyFrame[:, :, ::-1] for numpyFrame in moviepy.editor.VideoFileClip(filename=arguments_strVideo).iter_frames():
+		for intFrame, numpyFrame in enumerate(numpyFrame[:, :, ::-1] for numpyFrame in moviepy.editor.VideoFileClip(filename=arguments_strVideo).iter_frames()):
 			tensorFrames[4] = torch.FloatTensor(numpyFrame.transpose(2, 0, 1).astype(numpy.float32) * (1.0 / 255.0))
 
 			if tensorFrames[0] is not None:
