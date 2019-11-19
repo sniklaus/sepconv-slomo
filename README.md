@@ -1,7 +1,7 @@
-# pytorch-sepconv
-**News:** Check our new CVPR 2018 paper on a [faster and higher-quality](http://web.cecs.pdx.edu/~fliu/project/ctxsyn) frame interpolation method.
+# sepconv-slomo
+**News:** Check our new CVPR 2018 paper on a [faster and higher-quality](http://sniklaus.com/papers/ctxsyn) frame interpolation method.
 
-This is a reference implementation of Video Frame Interpolation via Adaptive Separable Convolution [1] using PyTorch. Given two frames, it will make use of [adaptive convolution](http://graphics.cs.pdx.edu/project/adaconv) [2] in a separable manner to interpolate the intermediate frame. Should you be making use of our work, please cite our paper [1].
+This is a reference implementation of Video Frame Interpolation via Adaptive Separable Convolution [1] using PyTorch. Given two frames, it will make use of [adaptive convolution](http://sniklaus.com/papers/adaconv) [2] in a separable manner to interpolate the intermediate frame. Should you be making use of our work, please cite our paper [1].
 
 <a href="https://arxiv.org/abs/1708.01692" rel="Paper"><img src="http://content.sniklaus.com/sepconv/paper.jpg" alt="Paper" width="100%"></a>
 
@@ -32,7 +32,7 @@ python run.py --model lf --video ./videos/car-turn.mp4 --out ./out.mp4
 For a quick benchmark using examples from the Middlebury benchmark for optical flow, run `python benchmark.py`. You can use it to easily verify that the provided implementation runs as expected.
 
 ## video
-<a href="http://web.cecs.pdx.edu/~fliu/project/sepconv/demo.mp4" rel="Video"><img src="http://web.cecs.pdx.edu/~fliu/project/sepconv/screen.jpg" alt="Video" width="100%"></a>
+<a href="http://content.sniklaus.com/sepconv/video.mp4" rel="Video"><img src="http://content.sniklaus.com/sepconv/video.jpg" alt="Video" width="100%"></a>
 
 ## license
 The provided implementation is strictly for academic purposes only. Should you be interested in using our technology for any commercial use, please feel free to contact us.
