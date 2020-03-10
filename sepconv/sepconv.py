@@ -3,10 +3,6 @@ import torch
 import cupy
 import re
 
-class Stream:
-	ptr = torch.cuda.current_stream().cuda_stream
-# end
-
 kernel_Sepconv_updateOutput = '''
 	extern "C" __global__ void kernel_Sepconv_updateOutput(
 		const int n,
@@ -17,14 +13,14 @@ kernel_Sepconv_updateOutput = '''
 	) { for (int intIndex = (blockIdx.x * blockDim.x) + threadIdx.x; intIndex < n; intIndex += blockDim.x * gridDim.x) {
 		float dblOutput = 0.0;
 
-		const int intSample = ( intIndex / SIZE_3(output) / SIZE_2(output) / SIZE_1(output) ) % SIZE_0(output);
-		const int intDepth  = ( intIndex / SIZE_3(output) / SIZE_2(output)                  ) % SIZE_1(output);
-		const int intY      = ( intIndex / SIZE_3(output)                                   ) % SIZE_2(output);
-		const int intX      = ( intIndex                                                    ) % SIZE_3(output);
+		const int intN = ( intIndex / SIZE_3(output) / SIZE_2(output) / SIZE_1(output) ) % SIZE_0(output);
+		const int intC = ( intIndex / SIZE_3(output) / SIZE_2(output)                  ) % SIZE_1(output);
+		const int intY = ( intIndex / SIZE_3(output)                                   ) % SIZE_2(output);
+		const int intX = ( intIndex                                                    ) % SIZE_3(output);
 
 		for (int intFilterY = 0; intFilterY < SIZE_1(vertical); intFilterY += 1) {
 			for (int intFilterX = 0; intFilterX < SIZE_1(horizontal); intFilterX += 1) {
-				dblOutput += VALUE_4(input, intSample, intDepth, intY + intFilterY, intX + intFilterX) * VALUE_4(vertical, intSample, intFilterY, intY, intX) * VALUE_4(horizontal, intSample, intFilterX, intY, intX);
+				dblOutput += VALUE_4(input, intN, intC, intY + intFilterY, intX + intFilterX) * VALUE_4(vertical, intN, intFilterY, intY, intX) * VALUE_4(horizontal, intN, intFilterX, intY, intX);
 			}
 		}
 
@@ -80,13 +76,13 @@ class _FunctionSepconv(torch.autograd.Function):
 	def forward(self, input, vertical, horizontal):
 		self.save_for_backward(input, vertical, horizontal)
 
-		intSample = input.size(0)
-		intInputDepth = input.size(1)
-		intInputHeight = input.size(2)
-		intInputWidth = input.size(3)
-		intFilterSize = min(vertical.size(1), horizontal.size(1))
-		intOutputHeight = min(vertical.size(2), horizontal.size(2))
-		intOutputWidth = min(vertical.size(3), horizontal.size(3))
+		intSample = input.shape[0]
+		intInputDepth = input.shape[1]
+		intInputHeight = input.shape[2]
+		intInputWidth = input.shape[3]
+		intFilterSize = min(vertical.shape[1], horizontal.shape[1])
+		intOutputHeight = min(vertical.shape[2], horizontal.shape[2])
+		intOutputWidth = min(vertical.shape[3], horizontal.shape[3])
 
 		assert(intInputHeight - intFilterSize == intOutputHeight - 1)
 		assert(intInputWidth - intFilterSize == intOutputWidth - 1)
@@ -107,8 +103,7 @@ class _FunctionSepconv(torch.autograd.Function):
 			}))(
 				grid=tuple([ int((n + 512 - 1) / 512), 1, 1 ]),
 				block=tuple([ 512, 1, 1 ]),
-				args=[ n, input.data_ptr(), vertical.data_ptr(), horizontal.data_ptr(), output.data_ptr() ],
-				stream=Stream
+				args=[ n, input.data_ptr(), vertical.data_ptr(), horizontal.data_ptr(), output.data_ptr() ]
 			)
 
 		elif first.is_cuda == False:
@@ -123,13 +118,13 @@ class _FunctionSepconv(torch.autograd.Function):
 	def backward(self, gradOutput):
 		input, vertical, horizontal = self.saved_tensors
 
-		intSample = input.size(0)
-		intInputDepth = input.size(1)
-		intInputHeight = input.size(2)
-		intInputWidth = input.size(3)
-		intFilterSize = min(vertical.size(1), horizontal.size(1))
-		intOutputHeight = min(vertical.size(2), horizontal.size(2))
-		intOutputWidth = min(vertical.size(3), horizontal.size(3))
+		intSample = input.shape[0]
+		intInputDepth = input.shape[1]
+		intInputHeight = input.shape[2]
+		intInputWidth = input.shape[3]
+		intFilterSize = min(vertical.shape[1], horizontal.shape[1])
+		intOutputHeight = min(vertical.shape[2], horizontal.shape[2])
+		intOutputWidth = min(vertical.shape[3], horizontal.shape[3])
 
 		assert(intInputHeight - intFilterSize == intOutputHeight - 1)
 		assert(intInputWidth - intFilterSize == intOutputWidth - 1)

@@ -14,7 +14,7 @@ import sys
 import tempfile
 
 try:
-	from sepconv import sepconv # the custom separable convolution layer
+	from .sepconv import sepconv # the custom separable convolution layer
 except:
 	sys.path.insert(0, './sepconv'); import sepconv # you should consider upgrading python
 # end
@@ -104,7 +104,7 @@ class Network(torch.nn.Module):
 		self.moduleHorizontal1 = Subnet()
 		self.moduleHorizontal2 = Subnet()
 
-		self.load_state_dict(torch.load('./network-' + arguments_strModel + '.pytorch'))
+		self.load_state_dict(torch.load(__file__.replace('run.py', 'network-' + arguments_strModel + '.pytorch')))
 	# end
 
 	def forward(self, tensorFirst, tensorSecond):
@@ -131,16 +131,22 @@ class Network(torch.nn.Module):
 	# end
 # end
 
-moduleNetwork = Network().cuda().eval()
+moduleNetwork = None
 
 ##########################################################
 
 def estimate(tensorFirst, tensorSecond):
-	assert(tensorFirst.size(1) == tensorSecond.size(1))
-	assert(tensorFirst.size(2) == tensorSecond.size(2))
+	global moduleNetwork
 
-	intWidth = tensorFirst.size(2)
-	intHeight = tensorFirst.size(1)
+	if moduleNetwork is None:
+		moduleNetwork = Network().cuda().eval()
+	# end
+
+	assert(tensorFirst.shape[1] == tensorSecond.shape[1])
+	assert(tensorFirst.shape[2] == tensorSecond.shape[2])
+
+	intWidth = tensorFirst.shape[2]
+	intHeight = tensorFirst.shape[1]
 
 	assert(intWidth <= 1280) # while our approach works with larger images, we do not recommend it unless you are aware of the implications
 	assert(intHeight <= 720) # while our approach works with larger images, we do not recommend it unless you are aware of the implications
