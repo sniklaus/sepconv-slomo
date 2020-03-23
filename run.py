@@ -83,76 +83,76 @@ class Network(torch.nn.Module):
 			)
 		# end
 
-		self.moduleConv1 = Basic(6, 32)
-		self.moduleConv2 = Basic(32, 64)
-		self.moduleConv3 = Basic(64, 128)
-		self.moduleConv4 = Basic(128, 256)
-		self.moduleConv5 = Basic(256, 512)
+		self.netConv1 = Basic(6, 32)
+		self.netConv2 = Basic(32, 64)
+		self.netConv3 = Basic(64, 128)
+		self.netConv4 = Basic(128, 256)
+		self.netConv5 = Basic(256, 512)
 
-		self.moduleDeconv5 = Basic(512, 512)
-		self.moduleDeconv4 = Basic(512, 256)
-		self.moduleDeconv3 = Basic(256, 128)
-		self.moduleDeconv2 = Basic(128, 64)
+		self.netDeconv5 = Basic(512, 512)
+		self.netDeconv4 = Basic(512, 256)
+		self.netDeconv3 = Basic(256, 128)
+		self.netDeconv2 = Basic(128, 64)
 
-		self.moduleUpsample5 = Upsample(512, 512)
-		self.moduleUpsample4 = Upsample(256, 256)
-		self.moduleUpsample3 = Upsample(128, 128)
-		self.moduleUpsample2 = Upsample(64, 64)
+		self.netUpsample5 = Upsample(512, 512)
+		self.netUpsample4 = Upsample(256, 256)
+		self.netUpsample3 = Upsample(128, 128)
+		self.netUpsample2 = Upsample(64, 64)
 
-		self.moduleVertical1 = Subnet()
-		self.moduleVertical2 = Subnet()
-		self.moduleHorizontal1 = Subnet()
-		self.moduleHorizontal2 = Subnet()
+		self.netVertical1 = Subnet()
+		self.netVertical2 = Subnet()
+		self.netHorizontal1 = Subnet()
+		self.netHorizontal2 = Subnet()
 
-		self.load_state_dict(torch.load(__file__.replace('run.py', 'network-' + arguments_strModel + '.pytorch')))
+		self.load_state_dict({ strKey.replace('module', 'net'): tenWeight for strKey, tenWeight in torch.load(__file__.replace('run.py', 'network-' + arguments_strModel + '.pytorch')).items() })
 	# end
 
-	def forward(self, tensorFirst, tensorSecond):
-		tensorConv1 = self.moduleConv1(torch.cat([ tensorFirst, tensorSecond ], 1))
-		tensorConv2 = self.moduleConv2(torch.nn.functional.avg_pool2d(input=tensorConv1, kernel_size=2, stride=2, count_include_pad=False))
-		tensorConv3 = self.moduleConv3(torch.nn.functional.avg_pool2d(input=tensorConv2, kernel_size=2, stride=2, count_include_pad=False))
-		tensorConv4 = self.moduleConv4(torch.nn.functional.avg_pool2d(input=tensorConv3, kernel_size=2, stride=2, count_include_pad=False))
-		tensorConv5 = self.moduleConv5(torch.nn.functional.avg_pool2d(input=tensorConv4, kernel_size=2, stride=2, count_include_pad=False))
+	def forward(self, tenFirst, tenSecond):
+		tenConv1 = self.netConv1(torch.cat([ tenFirst, tenSecond ], 1))
+		tenConv2 = self.netConv2(torch.nn.functional.avg_pool2d(input=tenConv1, kernel_size=2, stride=2, count_include_pad=False))
+		tenConv3 = self.netConv3(torch.nn.functional.avg_pool2d(input=tenConv2, kernel_size=2, stride=2, count_include_pad=False))
+		tenConv4 = self.netConv4(torch.nn.functional.avg_pool2d(input=tenConv3, kernel_size=2, stride=2, count_include_pad=False))
+		tenConv5 = self.netConv5(torch.nn.functional.avg_pool2d(input=tenConv4, kernel_size=2, stride=2, count_include_pad=False))
 
-		tensorDeconv5 = self.moduleUpsample5(self.moduleDeconv5(torch.nn.functional.avg_pool2d(input=tensorConv5, kernel_size=2, stride=2, count_include_pad=False)))
-		tensorDeconv4 = self.moduleUpsample4(self.moduleDeconv4(tensorDeconv5 + tensorConv5))
-		tensorDeconv3 = self.moduleUpsample3(self.moduleDeconv3(tensorDeconv4 + tensorConv4))
-		tensorDeconv2 = self.moduleUpsample2(self.moduleDeconv2(tensorDeconv3 + tensorConv3))
+		tenDeconv5 = self.netUpsample5(self.netDeconv5(torch.nn.functional.avg_pool2d(input=tenConv5, kernel_size=2, stride=2, count_include_pad=False)))
+		tenDeconv4 = self.netUpsample4(self.netDeconv4(tenDeconv5 + tenConv5))
+		tenDeconv3 = self.netUpsample3(self.netDeconv3(tenDeconv4 + tenConv4))
+		tenDeconv2 = self.netUpsample2(self.netDeconv2(tenDeconv3 + tenConv3))
 
-		tensorCombine = tensorDeconv2 + tensorConv2
+		tenCombine = tenDeconv2 + tenConv2
 
-		tensorFirst = torch.nn.functional.pad(input=tensorFirst, pad=[ int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)) ], mode='replicate')
-		tensorSecond = torch.nn.functional.pad(input=tensorSecond, pad=[ int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)) ], mode='replicate')
+		tenFirst = torch.nn.functional.pad(input=tenFirst, pad=[ int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)) ], mode='replicate')
+		tenSecond = torch.nn.functional.pad(input=tenSecond, pad=[ int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)) ], mode='replicate')
 
-		tensorDot1 = sepconv.FunctionSepconv(tensorInput=tensorFirst, tensorVertical=self.moduleVertical1(tensorCombine), tensorHorizontal=self.moduleHorizontal1(tensorCombine))
-		tensorDot2 = sepconv.FunctionSepconv(tensorInput=tensorSecond, tensorVertical=self.moduleVertical2(tensorCombine), tensorHorizontal=self.moduleHorizontal2(tensorCombine))
+		tenDot1 = sepconv.FunctionSepconv(tenInput=tenFirst, tenVertical=self.netVertical1(tenCombine), tenHorizontal=self.netHorizontal1(tenCombine))
+		tenDot2 = sepconv.FunctionSepconv(tenInput=tenSecond, tenVertical=self.netVertical2(tenCombine), tenHorizontal=self.netHorizontal2(tenCombine))
 
-		return tensorDot1 + tensorDot2
+		return tenDot1 + tenDot2
 	# end
 # end
 
-moduleNetwork = None
+netNetwork = None
 
 ##########################################################
 
-def estimate(tensorFirst, tensorSecond):
-	global moduleNetwork
+def estimate(tenFirst, tenSecond):
+	global netNetwork
 
-	if moduleNetwork is None:
-		moduleNetwork = Network().cuda().eval()
+	if netNetwork is None:
+		netNetwork = Network().cuda().eval()
 	# end
 
-	assert(tensorFirst.shape[1] == tensorSecond.shape[1])
-	assert(tensorFirst.shape[2] == tensorSecond.shape[2])
+	assert(tenFirst.shape[1] == tenSecond.shape[1])
+	assert(tenFirst.shape[2] == tenSecond.shape[2])
 
-	intWidth = tensorFirst.shape[2]
-	intHeight = tensorFirst.shape[1]
+	intWidth = tenFirst.shape[2]
+	intHeight = tenFirst.shape[1]
 
 	assert(intWidth <= 1280) # while our approach works with larger images, we do not recommend it unless you are aware of the implications
 	assert(intHeight <= 720) # while our approach works with larger images, we do not recommend it unless you are aware of the implications
 
-	tensorPreprocessedFirst = tensorFirst.cuda().view(1, 3, intHeight, intWidth)
-	tensorPreprocessedSecond = tensorSecond.cuda().view(1, 3, intHeight, intWidth)
+	tenPreprocessedFirst = tenFirst.cuda().view(1, 3, intHeight, intWidth)
+	tenPreprocessedSecond = tenSecond.cuda().view(1, 3, intHeight, intWidth)
 
 	if arguments_strPadding == 'paper':
 		intPaddingLeft, intPaddingTop, intPaddingBottom, intPaddingRight = int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)) ,int(math.floor(51 / 2.0))
@@ -176,22 +176,22 @@ def estimate(tensorFirst, tensorSecond):
 	intPaddingRight = intPreprocessedWidth - intWidth - intPaddingLeft
 	intPaddingBottom = intPreprocessedHeight - intHeight - intPaddingTop
 
-	tensorPreprocessedFirst = torch.nn.functional.pad(input=tensorPreprocessedFirst, pad=[ intPaddingLeft, intPaddingRight, intPaddingTop, intPaddingBottom ], mode='replicate')
-	tensorPreprocessedSecond = torch.nn.functional.pad(input=tensorPreprocessedSecond, pad=[ intPaddingLeft, intPaddingRight, intPaddingTop, intPaddingBottom ], mode='replicate')
+	tenPreprocessedFirst = torch.nn.functional.pad(input=tenPreprocessedFirst, pad=[ intPaddingLeft, intPaddingRight, intPaddingTop, intPaddingBottom ], mode='replicate')
+	tenPreprocessedSecond = torch.nn.functional.pad(input=tenPreprocessedSecond, pad=[ intPaddingLeft, intPaddingRight, intPaddingTop, intPaddingBottom ], mode='replicate')
 
-	return torch.nn.functional.pad(input=moduleNetwork(tensorPreprocessedFirst, tensorPreprocessedSecond), pad=[ 0 - intPaddingLeft, 0 - intPaddingRight, 0 - intPaddingTop, 0 - intPaddingBottom ], mode='replicate')[0, :, :, :].cpu()
+	return torch.nn.functional.pad(input=netNetwork(tenPreprocessedFirst, tenPreprocessedSecond), pad=[ 0 - intPaddingLeft, 0 - intPaddingRight, 0 - intPaddingTop, 0 - intPaddingBottom ], mode='replicate')[0, :, :, :].cpu()
 # end
 
 ##########################################################
 
 if __name__ == '__main__':
 	if arguments_strOut.split('.')[-1] in [ 'bmp', 'jpg', 'jpeg', 'png' ]:
-		tensorFirst = torch.FloatTensor(numpy.array(PIL.Image.open(arguments_strFirst))[:, :, ::-1].transpose(2, 0, 1).astype(numpy.float32) * (1.0 / 255.0))
-		tensorSecond = torch.FloatTensor(numpy.array(PIL.Image.open(arguments_strSecond))[:, :, ::-1].transpose(2, 0, 1).astype(numpy.float32) * (1.0 / 255.0))
+		tenFirst = torch.FloatTensor(numpy.array(PIL.Image.open(arguments_strFirst))[:, :, ::-1].transpose(2, 0, 1).astype(numpy.float32) * (1.0 / 255.0))
+		tenSecond = torch.FloatTensor(numpy.array(PIL.Image.open(arguments_strSecond))[:, :, ::-1].transpose(2, 0, 1).astype(numpy.float32) * (1.0 / 255.0))
 
-		tensorOutput = estimate(tensorFirst, tensorSecond)
+		tenOutput = estimate(tenFirst, tenSecond)
 
-		PIL.Image.fromarray((tensorOutput.clamp(0.0, 1.0).numpy().transpose(1, 2, 0)[:, :, ::-1] * 255.0).astype(numpy.uint8)).save(arguments_strOut)
+		PIL.Image.fromarray((tenOutput.clamp(0.0, 1.0).numpy().transpose(1, 2, 0)[:, :, ::-1] * 255.0).astype(numpy.uint8)).save(arguments_strOut)
 
 	elif arguments_strOut.split('.')[-1] in [ 'avi', 'mp4', 'webm', 'wmv' ]:
 		import moviepy
@@ -200,23 +200,23 @@ if __name__ == '__main__':
 		strTempdir = tempfile.gettempdir() + '/' + str.join('', [ random.choice('abcdefghijklmnopqrstuvwxyz0123456789') for intCount in range(20) ]); os.makedirs(strTempdir + '/')
 
 		intFrames = 0
-		tensorFrames = [ None, None, None, None, None ]
+		tenFrames = [ None, None, None, None, None ]
 
-		for intFrame, numpyFrame in enumerate(numpyFrame[:, :, ::-1] for numpyFrame in moviepy.editor.VideoFileClip(filename=arguments_strVideo).iter_frames()):
-			tensorFrames[4] = torch.FloatTensor(numpyFrame.transpose(2, 0, 1).astype(numpy.float32) * (1.0 / 255.0))
+		for intFrame, npyFrame in enumerate(npyFrame[:, :, ::-1] for npyFrame in moviepy.editor.VideoFileClip(filename=arguments_strVideo).iter_frames()):
+			tenFrames[4] = torch.FloatTensor(npyFrame.transpose(2, 0, 1).astype(numpy.float32) * (1.0 / 255.0))
 
-			if tensorFrames[0] is not None:
-				tensorFrames[2] = estimate(tensorFrames[0], tensorFrames[4])
-				tensorFrames[1] = estimate(tensorFrames[0], tensorFrames[2])
-				tensorFrames[3] = estimate(tensorFrames[2], tensorFrames[4])
+			if tenFrames[0] is not None:
+				tenFrames[2] = estimate(tenFrames[0], tenFrames[4])
+				tenFrames[1] = estimate(tenFrames[0], tenFrames[2])
+				tenFrames[3] = estimate(tenFrames[2], tenFrames[4])
 
-				PIL.Image.fromarray((tensorFrames[0].clamp(0.0, 1.0).numpy().transpose(1, 2, 0)[:, :, ::-1] * 255.0).astype(numpy.uint8)).save(strTempdir + '/' + str(intFrames).zfill(5) + '.png'); intFrames += 1
-				PIL.Image.fromarray((tensorFrames[1].clamp(0.0, 1.0).numpy().transpose(1, 2, 0)[:, :, ::-1] * 255.0).astype(numpy.uint8)).save(strTempdir + '/' + str(intFrames).zfill(5) + '.png'); intFrames += 1
-				PIL.Image.fromarray((tensorFrames[2].clamp(0.0, 1.0).numpy().transpose(1, 2, 0)[:, :, ::-1] * 255.0).astype(numpy.uint8)).save(strTempdir + '/' + str(intFrames).zfill(5) + '.png'); intFrames += 1
-				PIL.Image.fromarray((tensorFrames[3].clamp(0.0, 1.0).numpy().transpose(1, 2, 0)[:, :, ::-1] * 255.0).astype(numpy.uint8)).save(strTempdir + '/' + str(intFrames).zfill(5) + '.png'); intFrames += 1
+				PIL.Image.fromarray((tenFrames[0].clamp(0.0, 1.0).numpy().transpose(1, 2, 0)[:, :, ::-1] * 255.0).astype(numpy.uint8)).save(strTempdir + '/' + str(intFrames).zfill(5) + '.png'); intFrames += 1
+				PIL.Image.fromarray((tenFrames[1].clamp(0.0, 1.0).numpy().transpose(1, 2, 0)[:, :, ::-1] * 255.0).astype(numpy.uint8)).save(strTempdir + '/' + str(intFrames).zfill(5) + '.png'); intFrames += 1
+				PIL.Image.fromarray((tenFrames[2].clamp(0.0, 1.0).numpy().transpose(1, 2, 0)[:, :, ::-1] * 255.0).astype(numpy.uint8)).save(strTempdir + '/' + str(intFrames).zfill(5) + '.png'); intFrames += 1
+				PIL.Image.fromarray((tenFrames[3].clamp(0.0, 1.0).numpy().transpose(1, 2, 0)[:, :, ::-1] * 255.0).astype(numpy.uint8)).save(strTempdir + '/' + str(intFrames).zfill(5) + '.png'); intFrames += 1
 			# end
 
-			tensorFrames[0] = torch.FloatTensor(numpyFrame.transpose(2, 0, 1).astype(numpy.float32) * (1.0 / 255.0))
+			tenFrames[0] = torch.FloatTensor(npyFrame.transpose(2, 0, 1).astype(numpy.float32) * (1.0 / 255.0))
 		# end
 
 		moviepy.editor.ImageSequenceClip(sequence=strTempdir + '/', fps=25).write_videofile(arguments_strOut)

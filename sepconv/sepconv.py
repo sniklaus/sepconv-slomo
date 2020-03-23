@@ -13,7 +13,7 @@ kernel_Sepconv_updateOutput = '''
 		const float* horizontal,
 		float* output
 	) { for (int intIndex = (blockIdx.x * blockDim.x) + threadIdx.x; intIndex < n; intIndex += blockDim.x * gridDim.x) {
-		float dblOutput = 0.0;
+		float fltOutput = 0.0;
 
 		const int intN = ( intIndex / SIZE_3(output) / SIZE_2(output) / SIZE_1(output) ) % SIZE_0(output);
 		const int intC = ( intIndex / SIZE_3(output) / SIZE_2(output)                  ) % SIZE_1(output);
@@ -22,47 +22,47 @@ kernel_Sepconv_updateOutput = '''
 
 		for (int intFilterY = 0; intFilterY < SIZE_1(vertical); intFilterY += 1) {
 			for (int intFilterX = 0; intFilterX < SIZE_1(horizontal); intFilterX += 1) {
-				dblOutput += VALUE_4(input, intN, intC, intY + intFilterY, intX + intFilterX) * VALUE_4(vertical, intN, intFilterY, intY, intX) * VALUE_4(horizontal, intN, intFilterX, intY, intX);
+				fltOutput += VALUE_4(input, intN, intC, intY + intFilterY, intX + intFilterX) * VALUE_4(vertical, intN, intFilterY, intY, intX) * VALUE_4(horizontal, intN, intFilterX, intY, intX);
 			}
 		}
 
-		output[intIndex] = dblOutput;
+		output[intIndex] = fltOutput;
 	} }
 '''
 
-def cupy_kernel(strFunction, objectVariables):
+def cupy_kernel(strFunction, objVariables):
 	strKernel = globals()[strFunction]
 
 	while True:
-		objectMatch = re.search('(SIZE_)([0-4])(\()([^\)]*)(\))', strKernel)
+		objMatch = re.search('(SIZE_)([0-4])(\()([^\)]*)(\))', strKernel)
 
-		if objectMatch is None:
+		if objMatch is None:
 			break
 		# end
 
-		intArg = int(objectMatch.group(2))
+		intArg = int(objMatch.group(2))
 
-		strTensor = objectMatch.group(4)
-		intSizes = objectVariables[strTensor].size()
+		strTensor = objMatch.group(4)
+		intSizes = objVariables[strTensor].size()
 
-		strKernel = strKernel.replace(objectMatch.group(), str(intSizes[intArg]))
+		strKernel = strKernel.replace(objMatch.group(), str(intSizes[intArg]))
 	# end
 
 	while True:
-		objectMatch = re.search('(VALUE_)([0-4])(\()([^\)]+)(\))', strKernel)
+		objMatch = re.search('(VALUE_)([0-4])(\()([^\)]+)(\))', strKernel)
 
-		if objectMatch is None:
+		if objMatch is None:
 			break
 		# end
 
-		intArgs = int(objectMatch.group(2))
-		strArgs = objectMatch.group(4).split(',')
+		intArgs = int(objMatch.group(2))
+		strArgs = objMatch.group(4).split(',')
 
 		strTensor = strArgs[0]
-		intStrides = objectVariables[strTensor].stride()
+		intStrides = objVariables[strTensor].stride()
 		strIndex = [ '((' + strArgs[intArg + 1].replace('{', '(').replace('}', ')').strip() + ')*' + str(intStrides[intArg]) + ')' for intArg in range(intArgs) ]
 
-		strKernel = strKernel.replace(objectMatch.group(0), strTensor + '[' + str.join('+', strIndex) + ']')
+		strKernel = strKernel.replace(objMatch.group(0), strTensor + '[' + str.join('+', strIndex) + ']')
 	# end
 
 	return strKernel
@@ -149,8 +149,8 @@ class _FunctionSepconv(torch.autograd.Function):
 	# end
 # end
 
-def FunctionSepconv(tensorInput, tensorVertical, tensorHorizontal):
-	return _FunctionSepconv.apply(tensorInput, tensorVertical, tensorHorizontal)
+def FunctionSepconv(tenInput, tenVertical, tenHorizontal):
+	return _FunctionSepconv.apply(tenInput, tenVertical, tenHorizontal)
 # end
 
 class ModuleSepconv(torch.nn.Module):
@@ -158,7 +158,7 @@ class ModuleSepconv(torch.nn.Module):
 		super(ModuleSepconv, self).__init__()
 	# end
 
-	def forward(self, tensorInput, tensorVertical, tensorHorizontal):
-		return _FunctionSepconv.apply(tensorInput, tensorVertical, tensorHorizontal)
+	def forward(self, tenInput, tenVertical, tenHorizontal):
+		return _FunctionSepconv.apply(tenInput, tenVertical, tenHorizontal)
 	# end
 # end
