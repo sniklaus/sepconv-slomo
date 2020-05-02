@@ -186,8 +186,8 @@ def estimate(tenFirst, tenSecond):
 
 if __name__ == '__main__':
 	if arguments_strOut.split('.')[-1] in [ 'bmp', 'jpg', 'jpeg', 'png' ]:
-		tenFirst = torch.FloatTensor(numpy.array(PIL.Image.open(arguments_strFirst))[:, :, ::-1].transpose(2, 0, 1).astype(numpy.float32) * (1.0 / 255.0))
-		tenSecond = torch.FloatTensor(numpy.array(PIL.Image.open(arguments_strSecond))[:, :, ::-1].transpose(2, 0, 1).astype(numpy.float32) * (1.0 / 255.0))
+		tenFirst = torch.FloatTensor(numpy.ascontiguousarray(numpy.array(PIL.Image.open(arguments_strFirst))[:, :, ::-1].transpose(2, 0, 1).astype(numpy.float32) * (1.0 / 255.0)))
+		tenSecond = torch.FloatTensor(numpy.ascontiguousarray(numpy.array(PIL.Image.open(arguments_strSecond))[:, :, ::-1].transpose(2, 0, 1).astype(numpy.float32) * (1.0 / 255.0)))
 
 		tenOutput = estimate(tenFirst, tenSecond)
 
@@ -203,7 +203,7 @@ if __name__ == '__main__':
 		tenFrames = [ None, None, None, None, None ]
 
 		for intFrame, npyFrame in enumerate(npyFrame[:, :, ::-1] for npyFrame in moviepy.editor.VideoFileClip(filename=arguments_strVideo).iter_frames()):
-			tenFrames[4] = torch.FloatTensor(npyFrame.transpose(2, 0, 1).astype(numpy.float32) * (1.0 / 255.0))
+			tenFrames[4] = torch.FloatTensor(numpy.ascontiguousarray(npyFrame.transpose(2, 0, 1).astype(numpy.float32) * (1.0 / 255.0)))
 
 			if tenFrames[0] is not None:
 				tenFrames[2] = estimate(tenFrames[0], tenFrames[4])
@@ -216,7 +216,7 @@ if __name__ == '__main__':
 				PIL.Image.fromarray((tenFrames[3].clamp(0.0, 1.0).numpy().transpose(1, 2, 0)[:, :, ::-1] * 255.0).astype(numpy.uint8)).save(strTempdir + '/' + str(intFrames).zfill(5) + '.png'); intFrames += 1
 			# end
 
-			tenFrames[0] = torch.FloatTensor(npyFrame.transpose(2, 0, 1).astype(numpy.float32) * (1.0 / 255.0))
+			tenFrames[0] = torch.FloatTensor(numpy.ascontiguousarray(npyFrame.transpose(2, 0, 1).astype(numpy.float32) * (1.0 / 255.0)))
 		# end
 
 		moviepy.editor.ImageSequenceClip(sequence=strTempdir + '/', fps=25).write_videofile(arguments_strOut)
