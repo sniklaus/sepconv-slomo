@@ -12,6 +12,7 @@ import random
 import shutil
 import sys
 import tempfile
+import time
 
 try:
 	from .sepconv import sepconv # the custom separable convolution layer
@@ -197,7 +198,7 @@ if __name__ == '__main__':
 		import moviepy
 		import moviepy.editor
 
-		strTempdir = tempfile.gettempdir() + '/' + str.join('', [ random.choice('abcdefghijklmnopqrstuvwxyz0123456789') for intCount in range(20) ]); os.makedirs(strTempdir + '/')
+		strTempdir = tempfile.gettempdir() + '/sepconv-' + str(os.getpid()) + '-' + str.join('', [ random.choice('abcdefghijklmnopqrstuvwxyz0123456789') for intCount in range(8) ]) + '-' + str(time.time()).split('.')[-1]; os.makedirs(strTempdir + '/')
 
 		intFrames = 0
 		tenFrames = [ None, None, None, None, None ]
