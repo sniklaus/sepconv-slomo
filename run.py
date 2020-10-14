@@ -105,7 +105,7 @@ class Network(torch.nn.Module):
 		self.netHorizontal1 = Subnet()
 		self.netHorizontal2 = Subnet()
 
-		self.load_state_dict({ strKey.replace('module', 'net'): tenWeight for strKey, tenWeight in torch.load(__file__.replace('run.py', 'network-' + arguments_strModel + '.pytorch')).items() })
+		self.load_state_dict({ strKey.replace('module', 'net'): tenWeight for strKey, tenWeight in torch.hub.load_state_dict_from_url(url='http://content.sniklaus.com/sepconv/network-' + arguments_strModel + '.pytorch', file_name='sepconv-' + arguments_strModel).items() })
 	# end
 
 	def forward(self, tenFirst, tenSecond):
