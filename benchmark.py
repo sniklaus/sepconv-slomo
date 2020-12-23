@@ -7,7 +7,7 @@ import numpy
 import PIL
 import PIL.Image
 import skimage
-import skimage.measure
+import skimage.metrics
 
 import run
 
@@ -27,8 +27,8 @@ if __name__ == '__main__':
 		
 		npyEstimate = (run.estimate(tenFirst, tenSecond).clamp(0.0, 1.0).numpy().transpose(1, 2, 0) * 255.0).astype(numpy.uint8)
 
-		fltPsnr.append(skimage.measure.compare_psnr(im_true=numpy.array(PIL.Image.open(strTruth))[:, :, ::-1], im_test=npyEstimate, data_range=255))
-		fltSsim.append(skimage.measure.compare_ssim(X=numpy.array(PIL.Image.open(strTruth))[:, :, ::-1], Y=npyEstimate, data_range=255, multichannel=True))
+		fltPsnr.append(skimage.metrics.peak_signal_noise_ratio(image_true=numpy.array(PIL.Image.open(strTruth))[:, :, ::-1], image_test=npyEstimate, data_range=255))
+		fltSsim.append(skimage.metrics.structural_similarity(im1=numpy.array(PIL.Image.open(strTruth))[:, :, ::-1], im2=npyEstimate, data_range=255, multichannel=True))
 	# end
 
 	print('computed average psnr', numpy.mean(fltPsnr))
