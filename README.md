@@ -10,7 +10,7 @@ And for another adaptation, consider: https://github.com/HyeongminLEE/pytorch-se
 For softmax splatting, please see: https://github.com/sniklaus/softmax-splatting
 
 ## setup
-The separable convolution layer is implemented in CUDA using CuPy, which is why CuPy is a required dependency. It can be installed using `pip install cupy` or alternatively using one of the provided binary packages as outlined in the CuPy repository.
+The separable convolution layer is implemented in CUDA using CuPy, which is why CuPy is a required dependency. It can be installed using `pip install cupy` or alternatively using one of the provided [binary packages](https://docs.cupy.dev/en/stable/install.html#installing-cupy) as outlined in the CuPy repository.
 
 If you plan to process videos, then please also make sure to have `pip install moviepy` installed.
 
