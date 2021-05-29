@@ -89,9 +89,9 @@ class _FunctionSepconv(torch.autograd.Function):
 		assert(intInputHeight - intFilterSize == intOutputHeight - 1)
 		assert(intInputWidth - intFilterSize == intOutputWidth - 1)
 
-        input = input.contiguous(); assert(input.is_cuda == True)
-        vertical = vertical.contiguous(); assert(vertical.is_cuda == True)
-        horizontal = horizontal.contiguous(); assert(horizontal.is_cuda == True)
+		input = input.contiguous(); assert(input.is_cuda == True)
+		vertical = vertical.contiguous(); assert(vertical.is_cuda == True)
+		horizontal = horizontal.contiguous(); assert(horizontal.is_cuda == True)
 
 		output = input.new_zeros([ intSample, intInputDepth, intOutputHeight, intOutputWidth ])
 
@@ -131,7 +131,7 @@ class _FunctionSepconv(torch.autograd.Function):
 		assert(intInputHeight - intFilterSize == intOutputHeight - 1)
 		assert(intInputWidth - intFilterSize == intOutputWidth - 1)
 
-        gradOutput = gradOutput.contiguous(); assert(gradOutput.is_cuda == True)
+		gradOutput = gradOutput.contiguous(); assert(gradOutput.is_cuda == True)
 
 		gradInput = input.new_zeros([ intSample, intInputDepth, intInputHeight, intInputWidth ]) if self.needs_input_grad[0] == True else None
 		gradVertical = input.new_zeros([ intSample, intFilterSize, intOutputHeight, intOutputWidth ]) if self.needs_input_grad[1] == True else None

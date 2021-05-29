@@ -192,7 +192,7 @@ if __name__ == '__main__':
 
 		tenOutput = estimate(tenFirst, tenSecond)
 
-		PIL.Image.fromarray((tenOutput.clamp(0.0, 1.0).numpy().transpose(1, 2, 0)[:, :, ::-1] * 255.0).astype(numpy.uint8)).save(arguments_strOut)
+		PIL.Image.fromarray((tenOutput.clip(0.0, 1.0).numpy().transpose(1, 2, 0)[:, :, ::-1] * 255.0).astype(numpy.uint8)).save(arguments_strOut)
 
 	elif arguments_strOut.split('.')[-1] in [ 'avi', 'mp4', 'webm', 'wmv' ]:
 		import moviepy
@@ -211,10 +211,10 @@ if __name__ == '__main__':
 				tenFrames[1] = estimate(tenFrames[0], tenFrames[2])
 				tenFrames[3] = estimate(tenFrames[2], tenFrames[4])
 
-				PIL.Image.fromarray((tenFrames[0].clamp(0.0, 1.0).numpy().transpose(1, 2, 0)[:, :, ::-1] * 255.0).astype(numpy.uint8)).save(strTempdir + '/' + str(intFrames).zfill(5) + '.png'); intFrames += 1
-				PIL.Image.fromarray((tenFrames[1].clamp(0.0, 1.0).numpy().transpose(1, 2, 0)[:, :, ::-1] * 255.0).astype(numpy.uint8)).save(strTempdir + '/' + str(intFrames).zfill(5) + '.png'); intFrames += 1
-				PIL.Image.fromarray((tenFrames[2].clamp(0.0, 1.0).numpy().transpose(1, 2, 0)[:, :, ::-1] * 255.0).astype(numpy.uint8)).save(strTempdir + '/' + str(intFrames).zfill(5) + '.png'); intFrames += 1
-				PIL.Image.fromarray((tenFrames[3].clamp(0.0, 1.0).numpy().transpose(1, 2, 0)[:, :, ::-1] * 255.0).astype(numpy.uint8)).save(strTempdir + '/' + str(intFrames).zfill(5) + '.png'); intFrames += 1
+				PIL.Image.fromarray((tenFrames[0].clip(0.0, 1.0).numpy().transpose(1, 2, 0)[:, :, ::-1] * 255.0).astype(numpy.uint8)).save(strTempdir + '/' + str(intFrames).zfill(5) + '.png'); intFrames += 1
+				PIL.Image.fromarray((tenFrames[1].clip(0.0, 1.0).numpy().transpose(1, 2, 0)[:, :, ::-1] * 255.0).astype(numpy.uint8)).save(strTempdir + '/' + str(intFrames).zfill(5) + '.png'); intFrames += 1
+				PIL.Image.fromarray((tenFrames[2].clip(0.0, 1.0).numpy().transpose(1, 2, 0)[:, :, ::-1] * 255.0).astype(numpy.uint8)).save(strTempdir + '/' + str(intFrames).zfill(5) + '.png'); intFrames += 1
+				PIL.Image.fromarray((tenFrames[3].clip(0.0, 1.0).numpy().transpose(1, 2, 0)[:, :, ::-1] * 255.0).astype(numpy.uint8)).save(strTempdir + '/' + str(intFrames).zfill(5) + '.png'); intFrames += 1
 			# end
 
 			tenFrames[0] = torch.FloatTensor(numpy.ascontiguousarray(npyFrame.transpose(2, 0, 1).astype(numpy.float32) * (1.0 / 255.0)))
