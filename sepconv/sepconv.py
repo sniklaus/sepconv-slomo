@@ -105,7 +105,7 @@ class _FunctionSepconv(torch.autograd.Function):
 			}))(
 				grid=tuple([ int((n + 512 - 1) / 512), 1, 1 ]),
 				block=tuple([ 512, 1, 1 ]),
-				args=[ n, input.data_ptr(), vertical.data_ptr(), horizontal.data_ptr(), output.data_ptr() ]
+				args=[ cupy.int32(n), input.data_ptr(), vertical.data_ptr(), horizontal.data_ptr(), output.data_ptr() ]
 			)
 
 		elif first.is_cuda == False:
