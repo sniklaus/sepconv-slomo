@@ -18,7 +18,7 @@ If you plan to process videos, then please also make sure to have `pip install m
 To run it on your own pair of frames, use the following command. You can either select the `l1` or the `lf` model, please see our paper for more details. In short, the `l1` model should be used for quantitative evaluations and the `lf` model for qualitative comparisons.
 
 ```
-python run.py --model lf --first ./images/first.png --second ./images/second.png --out ./out.png
+python run.py --model lf --one ./images/one.png --two ./images/two.png --out ./out.png
 ```
 
 To run in on a video, use the following command.

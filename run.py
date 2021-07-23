@@ -28,16 +28,16 @@ torch.backends.cudnn.enabled = True # make sure to use cudnn for computational p
 
 arguments_strModel = 'lf'
 arguments_strPadding = 'improved'
-arguments_strFirst = './images/first.png'
-arguments_strSecond = './images/second.png'
+arguments_strOne = './images/one.png'
+arguments_strTwo = './images/two.png'
 arguments_strVideo = './videos/car-turn.mp4'
 arguments_strOut = './out.png'
 
 for strOption, strArgument in getopt.getopt(sys.argv[1:], '', [ strParameter[2:] + '=' for strParameter in sys.argv[1::2] ])[0]:
     if strOption == '--model' and strArgument != '': arguments_strModel = strArgument # which model to use, l1 or lf, please see our paper for more details
     if strOption == '--padding' and strArgument != '': arguments_strPadding = strArgument # which padding to use, the one used in the paper or the improved one
-    if strOption == '--first' and strArgument != '': arguments_strFirst = strArgument # path to the first frame
-    if strOption == '--second' and strArgument != '': arguments_strSecond = strArgument # path to the second frame
+    if strOption == '--one' and strArgument != '': arguments_strOne = strArgument # path to the first frame
+    if strOption == '--two' and strArgument != '': arguments_strTwo = strArgument # path to the second frame
     if strOption == '--video' and strArgument != '': arguments_strVideo = strArgument # path to a video
     if strOption == '--out' and strArgument != '': arguments_strOut = strArgument # path to where the output should be stored
 # end
@@ -46,7 +46,7 @@ for strOption, strArgument in getopt.getopt(sys.argv[1:], '', [ strParameter[2:]
 
 class Network(torch.nn.Module):
     def __init__(self):
-        super(Network, self).__init__()
+        super().__init__()
 
         def Basic(intInput, intOutput):
             return torch.nn.Sequential(
@@ -104,8 +104,8 @@ class Network(torch.nn.Module):
         self.load_state_dict({ strKey.replace('module', 'net'): tenWeight for strKey, tenWeight in torch.hub.load_state_dict_from_url(url='http://content.sniklaus.com/sepconv/network-' + arguments_strModel + '.pytorch', file_name='sepconv-' + arguments_strModel).items() })
     # end
 
-    def forward(self, tenFirst, tenSecond):
-        tenConv1 = self.netConv1(torch.cat([ tenFirst, tenSecond ], 1))
+    def forward(self, tenOne, tenTwo):
+        tenConv1 = self.netConv1(torch.cat([ tenOne, tenTwo ], 1))
         tenConv2 = self.netConv2(torch.nn.functional.avg_pool2d(input=tenConv1, kernel_size=2, stride=2, count_include_pad=False))
         tenConv3 = self.netConv3(torch.nn.functional.avg_pool2d(input=tenConv2, kernel_size=2, stride=2, count_include_pad=False))
         tenConv4 = self.netConv4(torch.nn.functional.avg_pool2d(input=tenConv3, kernel_size=2, stride=2, count_include_pad=False))
@@ -118,11 +118,11 @@ class Network(torch.nn.Module):
 
         tenCombine = tenDeconv2 + tenConv2
 
-        tenFirst = torch.nn.functional.pad(input=tenFirst, pad=[ int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)) ], mode='replicate')
-        tenSecond = torch.nn.functional.pad(input=tenSecond, pad=[ int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)) ], mode='replicate')
+        tenOne = torch.nn.functional.pad(input=tenOne, pad=[ int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)) ], mode='replicate')
+        tenTwo = torch.nn.functional.pad(input=tenTwo, pad=[ int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)) ], mode='replicate')
 
-        tenDot1 = sepconv.FunctionSepconv(tenInput=tenFirst, tenVertical=self.netVertical1(tenCombine), tenHorizontal=self.netHorizontal1(tenCombine))
-        tenDot2 = sepconv.FunctionSepconv(tenInput=tenSecond, tenVertical=self.netVertical2(tenCombine), tenHorizontal=self.netHorizontal2(tenCombine))
+        tenDot1 = sepconv.FunctionSepconv(tenInput=tenOne, tenVertical=self.netVertical1(tenCombine), tenHorizontal=self.netHorizontal1(tenCombine))
+        tenDot2 = sepconv.FunctionSepconv(tenInput=tenTwo, tenVertical=self.netVertical2(tenCombine), tenHorizontal=self.netHorizontal2(tenCombine))
 
         return tenDot1 + tenDot2
     # end
@@ -132,24 +132,24 @@ netNetwork = None
 
 ##########################################################
 
-def estimate(tenFirst, tenSecond):
+def estimate(tenOne, tenTwo):
     global netNetwork
 
     if netNetwork is None:
         netNetwork = Network().cuda().eval()
     # end
 
-    assert(tenFirst.shape[1] == tenSecond.shape[1])
-    assert(tenFirst.shape[2] == tenSecond.shape[2])
+    assert(tenOne.shape[1] == tenTwo.shape[1])
+    assert(tenOne.shape[2] == tenTwo.shape[2])
 
-    intWidth = tenFirst.shape[2]
-    intHeight = tenFirst.shape[1]
+    intWidth = tenOne.shape[2]
+    intHeight = tenOne.shape[1]
 
     assert(intWidth <= 1280) # while our approach works with larger images, we do not recommend it unless you are aware of the implications
     assert(intHeight <= 720) # while our approach works with larger images, we do not recommend it unless you are aware of the implications
 
-    tenPreprocessedFirst = tenFirst.cuda().view(1, 3, intHeight, intWidth)
-    tenPreprocessedSecond = tenSecond.cuda().view(1, 3, intHeight, intWidth)
+    tenPreprocessedOne = tenOne.cuda().view(1, 3, intHeight, intWidth)
+    tenPreprocessedTwo = tenTwo.cuda().view(1, 3, intHeight, intWidth)
 
     if arguments_strPadding == 'paper':
         intPaddingLeft, intPaddingTop, intPaddingBottom, intPaddingRight = int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)) ,int(math.floor(51 / 2.0))
@@ -173,20 +173,20 @@ def estimate(tenFirst, tenSecond):
     intPaddingRight = intPreprocessedWidth - intWidth - intPaddingLeft
     intPaddingBottom = intPreprocessedHeight - intHeight - intPaddingTop
 
-    tenPreprocessedFirst = torch.nn.functional.pad(input=tenPreprocessedFirst, pad=[ intPaddingLeft, intPaddingRight, intPaddingTop, intPaddingBottom ], mode='replicate')
-    tenPreprocessedSecond = torch.nn.functional.pad(input=tenPreprocessedSecond, pad=[ intPaddingLeft, intPaddingRight, intPaddingTop, intPaddingBottom ], mode='replicate')
+    tenPreprocessedOne = torch.nn.functional.pad(input=tenPreprocessedOne, pad=[ intPaddingLeft, intPaddingRight, intPaddingTop, intPaddingBottom ], mode='replicate')
+    tenPreprocessedTwo = torch.nn.functional.pad(input=tenPreprocessedTwo, pad=[ intPaddingLeft, intPaddingRight, intPaddingTop, intPaddingBottom ], mode='replicate')
 
-    return torch.nn.functional.pad(input=netNetwork(tenPreprocessedFirst, tenPreprocessedSecond), pad=[ 0 - intPaddingLeft, 0 - intPaddingRight, 0 - intPaddingTop, 0 - intPaddingBottom ], mode='replicate')[0, :, :, :].cpu()
+    return torch.nn.functional.pad(input=netNetwork(tenPreprocessedOne, tenPreprocessedTwo), pad=[ 0 - intPaddingLeft, 0 - intPaddingRight, 0 - intPaddingTop, 0 - intPaddingBottom ], mode='replicate')[0, :, :, :].cpu()
 # end
 
 ##########################################################
 
 if __name__ == '__main__':
     if arguments_strOut.split('.')[-1] in [ 'bmp', 'jpg', 'jpeg', 'png' ]:
-        tenFirst = torch.FloatTensor(numpy.ascontiguousarray(numpy.array(PIL.Image.open(arguments_strFirst))[:, :, ::-1].transpose(2, 0, 1).astype(numpy.float32) * (1.0 / 255.0)))
-        tenSecond = torch.FloatTensor(numpy.ascontiguousarray(numpy.array(PIL.Image.open(arguments_strSecond))[:, :, ::-1].transpose(2, 0, 1).astype(numpy.float32) * (1.0 / 255.0)))
+        tenOne = torch.FloatTensor(numpy.ascontiguousarray(numpy.array(PIL.Image.open(arguments_strOne))[:, :, ::-1].transpose(2, 0, 1).astype(numpy.float32) * (1.0 / 255.0)))
+        tenTwo = torch.FloatTensor(numpy.ascontiguousarray(numpy.array(PIL.Image.open(arguments_strTwo))[:, :, ::-1].transpose(2, 0, 1).astype(numpy.float32) * (1.0 / 255.0)))
 
-        tenOutput = estimate(tenFirst, tenSecond)
+        tenOutput = estimate(tenOne, tenTwo)
 
         PIL.Image.fromarray((tenOutput.clip(0.0, 1.0).numpy().transpose(1, 2, 0)[:, :, ::-1] * 255.0).astype(numpy.uint8)).save(arguments_strOut)
 

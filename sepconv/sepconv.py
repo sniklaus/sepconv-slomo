@@ -155,7 +155,7 @@ def FunctionSepconv(tenInput, tenVertical, tenHorizontal):
 
 class ModuleSepconv(torch.nn.Module):
 	def __init__(self):
-		super(ModuleSepconv, self).__init__()
+		super().__init__()
 	# end
 
 	def forward(self, tenInput, tenVertical, tenHorizontal):
