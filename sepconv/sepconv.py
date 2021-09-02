@@ -76,8 +76,6 @@ def cupy_launch(strFunction, strKernel):
 class _FunctionSepconv(torch.autograd.Function):
 	@staticmethod
 	def forward(self, input, vertical, horizontal):
-		self.save_for_backward(input, vertical, horizontal)
-
 		intSample = input.shape[0]
 		intInputDepth = input.shape[1]
 		intInputHeight = input.shape[2]
@@ -112,6 +110,8 @@ class _FunctionSepconv(torch.autograd.Function):
 			raise NotImplementedError()
 
 		# end
+
+		self.save_for_backward(input, vertical, horizontal)
 
 		return output
 	# end
