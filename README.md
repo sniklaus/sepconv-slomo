@@ -1,3 +1,5 @@
+This work has now been superseded by: https://github.com/sniklaus/revisiting-sepconv
+
 # sepconv-slomo
 This is a reference implementation of Video Frame Interpolation via Adaptive Separable Convolution [1] using PyTorch. Given two frames, it will make use of [adaptive convolution](http://sniklaus.com/papers/adaconv) [2] in a separable manner to interpolate the intermediate frame. Should you be making use of our work, please cite our paper [1].
 
