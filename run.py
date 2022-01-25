@@ -10,15 +10,9 @@ import PIL
 import PIL.Image
 import sys
 
-try:
-    from .sepconv import sepconv # the custom separable convolution layer
-except:
-    sys.path.insert(0, './sepconv'); import sepconv # you should consider upgrading python
-# end
+import sepconv # the custom separable convolution layer
 
 ##########################################################
-
-assert(int(str('').join(torch.__version__.split('.')[0:2])) >= 13) # requires at least pytorch version 1.3.0
 
 torch.set_grad_enabled(False) # make sure to not compute gradients for computational performance
 
@@ -33,7 +27,7 @@ arguments_strTwo = './images/two.png'
 arguments_strVideo = './videos/car-turn.mp4'
 arguments_strOut = './out.png'
 
-for strOption, strArgument in getopt.getopt(sys.argv[1:], '', [ strParameter[2:] + '=' for strParameter in sys.argv[1::2] ])[0]:
+for strOption, strArgument in getopt.getopt(sys.argv[1:], '', [strParameter[2:] + '=' for strParameter in sys.argv[1::2]])[0]:
     if strOption == '--model' and strArgument != '': arguments_strModel = strArgument # which model to use, l1 or lf, please see our paper for more details
     if strOption == '--padding' and strArgument != '': arguments_strPadding = strArgument # which padding to use, the one used in the paper or the improved one
     if strOption == '--one' and strArgument != '': arguments_strOne = strArgument # path to the first frame
@@ -105,7 +99,7 @@ class Network(torch.nn.Module):
     # end
 
     def forward(self, tenOne, tenTwo):
-        tenConv1 = self.netConv1(torch.cat([ tenOne, tenTwo ], 1))
+        tenConv1 = self.netConv1(torch.cat([tenOne, tenTwo], 1))
         tenConv2 = self.netConv2(torch.nn.functional.avg_pool2d(input=tenConv1, kernel_size=2, stride=2, count_include_pad=False))
         tenConv3 = self.netConv3(torch.nn.functional.avg_pool2d(input=tenConv2, kernel_size=2, stride=2, count_include_pad=False))
         tenConv4 = self.netConv4(torch.nn.functional.avg_pool2d(input=tenConv3, kernel_size=2, stride=2, count_include_pad=False))
@@ -118,11 +112,11 @@ class Network(torch.nn.Module):
 
         tenCombine = tenDeconv2 + tenConv2
 
-        tenOne = torch.nn.functional.pad(input=tenOne, pad=[ int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)) ], mode='replicate')
-        tenTwo = torch.nn.functional.pad(input=tenTwo, pad=[ int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)) ], mode='replicate')
+        tenOne = torch.nn.functional.pad(input=tenOne, pad=[int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0))], mode='replicate')
+        tenTwo = torch.nn.functional.pad(input=tenTwo, pad=[int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0))], mode='replicate')
 
-        tenDot1 = sepconv.FunctionSepconv(tenInput=tenOne, tenVertical=self.netVertical1(tenCombine), tenHorizontal=self.netHorizontal1(tenCombine))
-        tenDot2 = sepconv.FunctionSepconv(tenInput=tenTwo, tenVertical=self.netVertical2(tenCombine), tenHorizontal=self.netHorizontal2(tenCombine))
+        tenDot1 = sepconv.sepconv_func.apply(tenOne, self.netVertical1(tenCombine), self.netHorizontal1(tenCombine))
+        tenDot2 = sepconv.sepconv_func.apply(tenTwo, self.netVertical2(tenCombine), self.netHorizontal2(tenCombine))
 
         return tenDot1 + tenDot2
     # end
@@ -173,16 +167,16 @@ def estimate(tenOne, tenTwo):
     intPaddingRight = intPreprocessedWidth - intWidth - intPaddingLeft
     intPaddingBottom = intPreprocessedHeight - intHeight - intPaddingTop
 
-    tenPreprocessedOne = torch.nn.functional.pad(input=tenPreprocessedOne, pad=[ intPaddingLeft, intPaddingRight, intPaddingTop, intPaddingBottom ], mode='replicate')
-    tenPreprocessedTwo = torch.nn.functional.pad(input=tenPreprocessedTwo, pad=[ intPaddingLeft, intPaddingRight, intPaddingTop, intPaddingBottom ], mode='replicate')
+    tenPreprocessedOne = torch.nn.functional.pad(input=tenPreprocessedOne, pad=[intPaddingLeft, intPaddingRight, intPaddingTop, intPaddingBottom], mode='replicate')
+    tenPreprocessedTwo = torch.nn.functional.pad(input=tenPreprocessedTwo, pad=[intPaddingLeft, intPaddingRight, intPaddingTop, intPaddingBottom], mode='replicate')
 
-    return torch.nn.functional.pad(input=netNetwork(tenPreprocessedOne, tenPreprocessedTwo), pad=[ 0 - intPaddingLeft, 0 - intPaddingRight, 0 - intPaddingTop, 0 - intPaddingBottom ], mode='replicate')[0, :, :, :].cpu()
+    return torch.nn.functional.pad(input=netNetwork(tenPreprocessedOne, tenPreprocessedTwo), pad=[0 - intPaddingLeft, 0 - intPaddingRight, 0 - intPaddingTop, 0 - intPaddingBottom], mode='replicate')[0, :, :, :].cpu()
 # end
 
 ##########################################################
 
 if __name__ == '__main__':
-    if arguments_strOut.split('.')[-1] in [ 'bmp', 'jpg', 'jpeg', 'png' ]:
+    if arguments_strOut.split('.')[-1] in ['bmp', 'jpg', 'jpeg', 'png']:
         tenOne = torch.FloatTensor(numpy.ascontiguousarray(numpy.array(PIL.Image.open(arguments_strOne))[:, :, ::-1].transpose(2, 0, 1).astype(numpy.float32) * (1.0 / 255.0)))
         tenTwo = torch.FloatTensor(numpy.ascontiguousarray(numpy.array(PIL.Image.open(arguments_strTwo))[:, :, ::-1].transpose(2, 0, 1).astype(numpy.float32) * (1.0 / 255.0)))
 
@@ -190,7 +184,7 @@ if __name__ == '__main__':
 
         PIL.Image.fromarray((tenOutput.clip(0.0, 1.0).numpy().transpose(1, 2, 0)[:, :, ::-1] * 255.0).astype(numpy.uint8)).save(arguments_strOut)
 
-    elif arguments_strOut.split('.')[-1] in [ 'avi', 'mp4', 'webm', 'wmv' ]:
+    elif arguments_strOut.split('.')[-1] in ['avi', 'mp4', 'webm', 'wmv']:
         import moviepy
         import moviepy.editor
         import moviepy.video.io.ffmpeg_writer
@@ -200,7 +194,7 @@ if __name__ == '__main__':
         intWidth = objVideoreader.w
         intHeight = objVideoreader.h
 
-        tenFrames = [ None, None, None, None, None ]
+        tenFrames = [None, None, None, None, None]
 
         with moviepy.video.io.ffmpeg_writer.FFMPEG_VideoWriter(filename=arguments_strOut, size=(intWidth, intHeight), fps=objVideoreader.fps) as objVideowriter:
             for npyFrame in objVideoreader.iter_frames():
