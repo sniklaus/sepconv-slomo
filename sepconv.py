@@ -125,7 +125,7 @@ def cuda_kernel(strFunction:str, strKernel:str, objVariables:typing.Dict):
             strTensor = objMatch.group(4)
             intSizes = objVariables[strTensor].size()
 
-            strKernel = strKernel.replace(objMatch.group(), str(intSizes[intArg]))
+            strKernel = strKernel.replace(objMatch.group(), str(intSizes[intArg] if torch.is_tensor(intSizes[intArg]) == False else intSizes[intArg].item()))
         # end
 
         while True:
@@ -161,7 +161,7 @@ def cuda_kernel(strFunction:str, strKernel:str, objVariables:typing.Dict):
             strIndex = []
 
             for intArg in range(intArgs):
-                strIndex.append('((' + strArgs[intArg + 1].replace('{', '(').replace('}', ')').strip() + ')*' + str(intStrides[intArg]) + ')')
+                strIndex.append('((' + strArgs[intArg + 1].replace('{', '(').replace('}', ')').strip() + ')*' + str(intStrides[intArg] if torch.is_tensor(intStrides[intArg]) == False else intStrides[intArg].item()) + ')')
             # end
 
             strKernel = strKernel.replace('OFFSET_' + str(intArgs) + '(' + strKernel[intStart:intStop] + ')', '(' + str.join('+', strIndex) + ')')
@@ -200,7 +200,7 @@ def cuda_kernel(strFunction:str, strKernel:str, objVariables:typing.Dict):
             strIndex = []
 
             for intArg in range(intArgs):
-                strIndex.append('((' + strArgs[intArg + 1].replace('{', '(').replace('}', ')').strip() + ')*' + str(intStrides[intArg]) + ')')
+                strIndex.append('((' + strArgs[intArg + 1].replace('{', '(').replace('}', ')').strip() + ')*' + str(intStrides[intArg] if torch.is_tensor(intStrides[intArg]) == False else intStrides[intArg].item()) + ')')
             # end
 
             strKernel = strKernel.replace('VALUE_' + str(intArgs) + '(' + strKernel[intStart:intStop] + ')', strTensor + '[' + str.join('+', strIndex) + ']')
