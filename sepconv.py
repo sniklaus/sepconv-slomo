@@ -249,11 +249,11 @@ class sepconv_func(torch.autograd.Function):
                     const int intY = ( intIndex / SIZE_3(tenOut)                                   ) % SIZE_2(tenOut);
                     const int intX = ( intIndex                                                    ) % SIZE_3(tenOut);
 
-                    {{type}} fltOut = 0.0;
+                    {{type}} fltOut = 0.0f;
 
-                    {{type}} fltKahanc = 0.0;
-                    {{type}} fltKahany = 0.0;
-                    {{type}} fltKahant = 0.0;
+                    {{type}} fltKahanc = 0.0f;
+                    {{type}} fltKahany = 0.0f;
+                    {{type}} fltKahant = 0.0f;
 
                     for (int intFy = 0; intFy < SIZE_1(tenVer); intFy += 1) {
                         for (int intFx = 0; intFx < SIZE_1(tenHor); intFx += 1) {
@@ -317,11 +317,11 @@ class sepconv_func(torch.autograd.Function):
                     const int intY = ( intIndex / SIZE_3(tenIngrad)                                         ) % SIZE_2(tenIngrad);
                     const int intX = ( intIndex                                                             ) % SIZE_3(tenIngrad);
 
-                    {{type}} fltIngrad = 0.0;
+                    {{type}} fltIngrad = 0.0f;
 
-                    {{type}} fltKahanc = 0.0;
-                    {{type}} fltKahany = 0.0;
-                    {{type}} fltKahant = 0.0;
+                    {{type}} fltKahanc = 0.0f;
+                    {{type}} fltKahany = 0.0f;
+                    {{type}} fltKahant = 0.0f;
 
                     for (int intFy = 0; intFy < SIZE_1(tenVer); intFy += 1) {
                         int intKy = intY + intFy - (SIZE_1(tenVer) - 1);
@@ -378,11 +378,11 @@ class sepconv_func(torch.autograd.Function):
                     const int intY = ( intIndex / SIZE_3(tenVergrad)                                           ) % SIZE_2(tenVergrad);
                     const int intX = ( intIndex                                                                ) % SIZE_3(tenVergrad);
 
-                    {{type}} fltVergrad = 0.0;
+                    {{type}} fltVergrad = 0.0f;
 
-                    {{type}} fltKahanc = 0.0;
-                    {{type}} fltKahany = 0.0;
-                    {{type}} fltKahant = 0.0;
+                    {{type}} fltKahanc = 0.0f;
+                    {{type}} fltKahany = 0.0f;
+                    {{type}} fltKahant = 0.0f;
 
                     for (int intI = 0; intI < SIZE_1(tenIn); intI += 1) {
                         for (int intFx = 0; intFx < SIZE_1(tenHor); intFx += 1) {
@@ -429,11 +429,11 @@ class sepconv_func(torch.autograd.Function):
                     const int intY = ( intIndex / SIZE_3(tenHorgrad)                                           ) % SIZE_2(tenHorgrad);
                     const int intX = ( intIndex                                                                ) % SIZE_3(tenHorgrad);
 
-                    {{type}} fltHorgrad = 0.0;
+                    {{type}} fltHorgrad = 0.0f;
 
-                    {{type}} fltKahanc = 0.0;
-                    {{type}} fltKahany = 0.0;
-                    {{type}} fltKahant = 0.0;
+                    {{type}} fltKahanc = 0.0f;
+                    {{type}} fltKahany = 0.0f;
+                    {{type}} fltKahant = 0.0f;
 
                     for (int intI = 0; intI < SIZE_1(tenIn); intI += 1) {
                         for (int intFy = 0; intFy < SIZE_1(tenVer); intFy += 1) {

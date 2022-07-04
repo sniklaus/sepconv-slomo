@@ -110,13 +110,15 @@ class Network(torch.nn.Module):
 
         tenCombine = tenDeconv2 + tenConv2
 
-        tenOne = torch.nn.functional.pad(input=tenOne, pad=[int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0))], mode='replicate')
-        tenTwo = torch.nn.functional.pad(input=tenTwo, pad=[int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0))], mode='replicate')
+        tenVerone = self.netVertical1(tenCombine)
+        tenVertwo = self.netVertical2(tenCombine)
+        tenHorone = self.netHorizontal1(tenCombine)
+        tenHortwo = self.netHorizontal2(tenCombine)
 
-        tenDot1 = sepconv.sepconv_func.apply(tenOne, self.netVertical1(tenCombine), self.netHorizontal1(tenCombine))
-        tenDot2 = sepconv.sepconv_func.apply(tenTwo, self.netVertical2(tenCombine), self.netHorizontal2(tenCombine))
-
-        return tenDot1 + tenDot2
+        return sum([
+            sepconv.sepconv_func.apply(torch.nn.functional.pad(input=tenOne, pad=[int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0))], mode='replicate'), tenVerone, tenHorone),
+            sepconv.sepconv_func.apply(torch.nn.functional.pad(input=tenTwo, pad=[int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0)), int(math.floor(51 / 2.0))], mode='replicate'), tenVertwo, tenHortwo)
+        ])
     # end
 # end
 
