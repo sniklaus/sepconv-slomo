@@ -233,7 +233,7 @@ class sepconv_func(torch.autograd.Function):
     @staticmethod
     @torch.cuda.amp.custom_fwd(cast_inputs=torch.float32)
     def forward(self, tenIn, tenVer, tenHor):
-        tenOut = tenIn.new_empty([tenIn.shape[0], tenIn.shape[1], tenVer.shape[2] and tenHor.shape[2], tenVer.shape[3] and tenHor.shape[3]])
+        tenOut = tenIn.new_zeros([tenIn.shape[0], tenIn.shape[1], tenVer.shape[2] and tenHor.shape[2], tenVer.shape[3] and tenHor.shape[3]])
 
         if tenIn.is_cuda == True:
             cuda_launch(cuda_kernel('sepconv_out', '''
@@ -296,9 +296,9 @@ class sepconv_func(torch.autograd.Function):
 
         tenOutgrad = tenOutgrad.contiguous(); assert(tenOutgrad.is_cuda == True)
 
-        tenIngrad = tenIn.new_empty([tenIn.shape[0], tenIn.shape[1], tenIn.shape[2], tenIn.shape[3]]) if self.needs_input_grad[0] == True else None
-        tenVergrad = tenVer.new_empty([tenVer.shape[0], tenVer.shape[1], tenVer.shape[2], tenVer.shape[3]]) if self.needs_input_grad[1] == True else None
-        tenHorgrad = tenHor.new_empty([tenHor.shape[0], tenHor.shape[1], tenHor.shape[2], tenHor.shape[3]]) if self.needs_input_grad[2] == True else None
+        tenIngrad = tenIn.new_zeros([tenIn.shape[0], tenIn.shape[1], tenIn.shape[2], tenIn.shape[3]]) if self.needs_input_grad[0] == True else None
+        tenVergrad = tenVer.new_zeros([tenVer.shape[0], tenVer.shape[1], tenVer.shape[2], tenVer.shape[3]]) if self.needs_input_grad[1] == True else None
+        tenHorgrad = tenHor.new_zeros([tenHor.shape[0], tenHor.shape[1], tenHor.shape[2], tenHor.shape[3]]) if self.needs_input_grad[2] == True else None
 
         if tenIngrad is not None:
             cuda_launch(cuda_kernel('sepconv_ingrad', '''
