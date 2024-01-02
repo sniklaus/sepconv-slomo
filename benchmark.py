@@ -12,7 +12,7 @@ import run
 
 ##########################################################
 
-run.arguments_strModel = 'l1' # making sure to load the l1 model since it is the one that should be used for quantiative evaluations
+run.args_strModel = 'l1' # making sure to load the l1 model since it is the one that should be used for quantiative evaluations
 
 ##########################################################
 
@@ -27,7 +27,7 @@ if __name__ == '__main__':
         npyEstimate = (run.estimate(tenOne, tenTwo).clip(0.0, 1.0).numpy().transpose(1, 2, 0) * 255.0).astype(numpy.uint8)
 
         fltPsnr.append(skimage.metrics.peak_signal_noise_ratio(image_true=numpy.array(PIL.Image.open(strTruth))[:, :, ::-1], image_test=npyEstimate, data_range=255))
-        fltSsim.append(skimage.metrics.structural_similarity(im1=numpy.array(PIL.Image.open(strTruth))[:, :, ::-1], im2=npyEstimate, data_range=255, multichannel=True))
+        fltSsim.append(skimage.metrics.structural_similarity(im1=numpy.array(PIL.Image.open(strTruth))[:, :, ::-1], im2=npyEstimate, data_range=255, channel_axis=2))
     # end
 
     print('computed average psnr', numpy.mean(fltPsnr))
