@@ -137,7 +137,7 @@ def estimate(tenOne, tenTwo):
     global netNetwork
 
     if netNetwork is None:
-        netNetwork = Network().cuda().eval()
+        netNetwork = Network().cuda().train(False)
     # end
 
     assert(tenOne.shape[1] == tenTwo.shape[1])
@@ -189,14 +189,12 @@ if __name__ == '__main__':
 
         tenOutput = estimate(tenOne, tenTwo)
 
-        PIL.Image.fromarray((tenOutput.clip(0.0, 1.0).numpy().transpose(1, 2, 0)[:, :, ::-1] * 255.0).astype(numpy.uint8)).save(args_strOut)
+        PIL.Image.fromarray((tenOutput.clip(0.0, 1.0).numpy(force=True).transpose(1, 2, 0)[:, :, ::-1] * 255.0).astype(numpy.uint8)).save(args_strOut)
 
     elif args_strOut.split('.')[-1] in ['avi', 'mp4', 'webm', 'wmv']:
         import moviepy
-        import moviepy.editor
-        import moviepy.video.io.ffmpeg_writer
 
-        objVideoreader = moviepy.editor.VideoFileClip(filename=args_strVideo)
+        objVideoreader = moviepy.VideoFileClip(filename=args_strVideo)
 
         intWidth = objVideoreader.w
         intHeight = objVideoreader.h
@@ -212,10 +210,10 @@ if __name__ == '__main__':
                     tenFrames[1] = estimate(tenFrames[0], tenFrames[2])
                     tenFrames[3] = estimate(tenFrames[2], tenFrames[4])
 
-                    objVideowriter.write_frame((tenFrames[0].clip(0.0, 1.0).numpy().transpose(1, 2, 0)[:, :, ::-1] * 255.0).astype(numpy.uint8))
-                    objVideowriter.write_frame((tenFrames[1].clip(0.0, 1.0).numpy().transpose(1, 2, 0)[:, :, ::-1] * 255.0).astype(numpy.uint8))
-                    objVideowriter.write_frame((tenFrames[2].clip(0.0, 1.0).numpy().transpose(1, 2, 0)[:, :, ::-1] * 255.0).astype(numpy.uint8))
-                    objVideowriter.write_frame((tenFrames[3].clip(0.0, 1.0).numpy().transpose(1, 2, 0)[:, :, ::-1] * 255.0).astype(numpy.uint8))
+                    objVideowriter.write_frame((tenFrames[0].clip(0.0, 1.0).numpy(force=True).transpose(1, 2, 0)[:, :, ::-1] * 255.0).astype(numpy.uint8))
+                    objVideowriter.write_frame((tenFrames[1].clip(0.0, 1.0).numpy(force=True).transpose(1, 2, 0)[:, :, ::-1] * 255.0).astype(numpy.uint8))
+                    objVideowriter.write_frame((tenFrames[2].clip(0.0, 1.0).numpy(force=True).transpose(1, 2, 0)[:, :, ::-1] * 255.0).astype(numpy.uint8))
+                    objVideowriter.write_frame((tenFrames[3].clip(0.0, 1.0).numpy(force=True).transpose(1, 2, 0)[:, :, ::-1] * 255.0).astype(numpy.uint8))
                 # end
 
                 tenFrames[0] = torch.FloatTensor(numpy.ascontiguousarray(npyFrame[:, :, ::-1].transpose(2, 0, 1).astype(numpy.float32) * (1.0 / 255.0)))
