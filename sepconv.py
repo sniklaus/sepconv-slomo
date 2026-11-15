@@ -217,7 +217,7 @@ def cuda_kernel(strFunction:str, strKernel:str, objVariables:typing.Dict):
 
 
 @cupy.memoize(for_each_device=True)
-def cuda_launch(strKey:str):
+def cuda_compile(strKey:str):
     if 'CUDA_HOME' not in os.environ:
         if cupy.cuda.get_cuda_path() is not None:
             os.environ['CUDA_HOME'] = cupy.cuda.get_cuda_path()
@@ -229,6 +229,21 @@ def cuda_launch(strKey:str):
     # end
 
     return cupy.RawKernel(objCudacache[strKey]['strKernel'], objCudacache[strKey]['strFunction'])
+# end
+
+
+def cuda_launch(strKey:str, objDevice:torch.device):
+    def launch(**kwargs):
+        with cupy.cuda.Device(objDevice.index):
+            if 'stream' not in kwargs:
+                kwargs['stream'] = collections.namedtuple('Stream', 'ptr')(torch.cuda.current_stream(objDevice).cuda_stream)
+            # end
+
+            cuda_compile(strKey)(**kwargs)
+        # end
+    # end
+
+    return launch
 # end
 
 
@@ -282,11 +297,10 @@ class sepconv_func(torch.autograd.Function):
                 'tenVer': tenVer,
                 'tenHor': tenHor,
                 'tenOut': tenOut
-            }))(
+            }), tenIn.device)(
                 grid=tuple([int((tenOut.nelement() + 512 - 1) / 512), 1, 1]),
                 block=tuple([512, 1, 1]),
-                args=[cuda_int32(tenOut.nelement()), tenIn.data_ptr(), tenVer.data_ptr(), tenHor.data_ptr(), tenOut.data_ptr()],
-                stream=collections.namedtuple('Stream', 'ptr')(torch.cuda.current_stream().cuda_stream)
+                args=[cuda_int32(tenOut.nelement()), tenIn.data_ptr(), tenVer.data_ptr(), tenHor.data_ptr(), tenOut.data_ptr()]
             )
 
         elif tenIn.is_cuda != True:
@@ -363,11 +377,10 @@ class sepconv_func(torch.autograd.Function):
                 'tenIngrad': tenIngrad,
                 'tenVergrad': tenVergrad,
                 'tenHorgrad': tenHorgrad
-            }))(
+            }), tenIn.device)(
                 grid=tuple([int((tenIngrad.nelement() + 512 - 1) / 512), 1, 1]),
                 block=tuple([512, 1, 1]),
-                args=[cuda_int32(tenIngrad.nelement()), tenIn.data_ptr(), tenVer.data_ptr(), tenHor.data_ptr(), tenOutgrad.data_ptr(), tenIngrad.data_ptr(), None, None],
-                stream=collections.namedtuple('Stream', 'ptr')(torch.cuda.current_stream().cuda_stream)
+                args=[cuda_int32(tenIngrad.nelement()), tenIn.data_ptr(), tenVer.data_ptr(), tenHor.data_ptr(), tenOutgrad.data_ptr(), tenIngrad.data_ptr(), None, None]
             )
         # end
 
@@ -414,11 +427,10 @@ class sepconv_func(torch.autograd.Function):
                 'tenIngrad': tenIngrad,
                 'tenVergrad': tenVergrad,
                 'tenHorgrad': tenHorgrad
-            }))(
+            }), tenIn.device)(
                 grid=tuple([int((tenVergrad.nelement() + 512 - 1) / 512), 1, 1]),
                 block=tuple([512, 1, 1]),
-                args=[cuda_int32(tenVergrad.nelement()), tenIn.data_ptr(), tenVer.data_ptr(), tenHor.data_ptr(), tenOutgrad.data_ptr(), None, tenVergrad.data_ptr(), None],
-                stream=collections.namedtuple('Stream', 'ptr')(torch.cuda.current_stream().cuda_stream)
+                args=[cuda_int32(tenVergrad.nelement()), tenIn.data_ptr(), tenVer.data_ptr(), tenHor.data_ptr(), tenOutgrad.data_ptr(), None, tenVergrad.data_ptr(), None]
             )
         # end
 
@@ -465,11 +477,10 @@ class sepconv_func(torch.autograd.Function):
                 'tenIngrad': tenIngrad,
                 'tenVergrad': tenVergrad,
                 'tenHorgrad': tenHorgrad
-            }))(
+            }), tenIn.device)(
                 grid=tuple([int((tenHorgrad.nelement() + 512 - 1) / 512), 1, 1]),
                 block=tuple([512, 1, 1]),
-                args=[cuda_int32(tenHorgrad.nelement()), tenIn.data_ptr(), tenVer.data_ptr(), tenHor.data_ptr(), tenOutgrad.data_ptr(), None, None, tenHorgrad.data_ptr()],
-                stream=collections.namedtuple('Stream', 'ptr')(torch.cuda.current_stream().cuda_stream)
+                args=[cuda_int32(tenHorgrad.nelement()), tenIn.data_ptr(), tenVer.data_ptr(), tenHor.data_ptr(), tenOutgrad.data_ptr(), None, None, tenHorgrad.data_ptr()]
             )
         # end
 
